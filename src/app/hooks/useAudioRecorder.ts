@@ -1,54 +1,124 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+
+export type Transcript = {
+  text: string;
+  message_type: "PartialTranscript" | "FinalTranscript";
+};
 
 export function useAudioRecorder() {
   const [recording, setRecording] = useState(false);
-  // 1. Add state to hold the MediaStream object
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
 
-  async function startRecording() {
-    // Get the stream
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
-    // 2. Store the stream in state
-    setMediaStream(stream);
+  // Convert Float32 -> PCM16
+  const floatTo16BitPCM = (float32Array: Float32Array) => {
+    const buffer = new ArrayBuffer(float32Array.length * 2);
+    const view = new DataView(buffer);
+    let offset = 0;
+    for (let i = 0; i < float32Array.length; i++, offset += 2) {
+      let s = Math.max(-1, Math.min(1, float32Array[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+    return buffer;
+  };
 
-    // Continue with your existing logic
-    const mediaRecorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = mediaRecorder;
+  const startRecording = async () => {
+    setTranscript(null);
 
-    mediaRecorder.ondataavailable = async (event) => {
-      if (event.data.size > 0) {
-        const formData = new FormData();
-        formData.append("audio", event.data, "chunk.wav");
-        await fetch("/api/stream-audio", { method: "POST", body: formData });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMediaStream(stream);
+      setRecording(true);
+
+      socketRef.current = new WebSocket("ws://localhost:3001");
+
+      socketRef.current.onopen = () => {
+        console.log("WebSocket connected!");
+
+        // Create 16kHz AudioContext
+        audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+
+        // Get mic input
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+
+        // Create processor node
+        processorRef.current = audioContextRef.current.createScriptProcessor(
+          4096,
+          1,
+          1
+        );
+
+        source.connect(processorRef.current);
+        processorRef.current.connect(audioContextRef.current.destination);
+
+        // On audio buffer available
+        processorRef.current.onaudioprocess = (e) => {
+          if (socketRef.current?.readyState === WebSocket.OPEN) {
+            const float32Data = e.inputBuffer.getChannelData(0);
+            const pcm16Buffer = floatTo16BitPCM(float32Data);
+            socketRef.current.send(pcm16Buffer);
+          }
+        };
+      };
+
+      socketRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "transcript") {
+          console.log("Transcript received:", data); // log in browser
+          setTranscript(data as Transcript);
+        } else if (data.type === "error") {
+          console.error("Server error:", data.message);
+        }
+      };
+
+      socketRef.current.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      socketRef.current.onclose = () => {
+        console.log("WebSocket disconnected.");
+      };
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      setRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    setRecording(false);
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send("terminate");
+      socketRef.current.close();
+    }
+    mediaStream?.getTracks().forEach((track) => track.stop());
+    setMediaStream(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
       }
     };
+  }, []);
 
-    mediaRecorder.start(1000); // every 1s
-    setRecording(true);
-  }
-
-  function stopRecording() {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      // 3. Important: Stop the stream tracks to release the microphone
-      mediaRecorderRef.current.stream
-        .getTracks()
-        .forEach((track) => track.stop());
-    }
-    setRecording(false);
-    setMediaStream(null); // Clear the stream from state
-  }
-
-  // 4. Return the mediaStream along with the other values
   return {
     recording,
     startRecording,
     stopRecording,
     mediaStream,
-    mediaRecorderRef, // <-- Add this
+    transcript,
   };
 }

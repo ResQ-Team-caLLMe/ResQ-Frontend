@@ -38,7 +38,7 @@ export const AudioVisualizer = ({
 
             analyser.getByteTimeDomainData(dataArray);
 
-            // ✨ 1. Clear the canvas completely before each frame
+            // 1. Clear the canvas completely before each frame
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Set line style
@@ -50,7 +50,7 @@ export const AudioVisualizer = ({
             let x = 0;
 
             for (let i = 0; i < bufferLength; i++) {
-                // ✨ 2. New logic to draw from the center
+                // 2. New logic to draw from the center
                 // dataArray values are 0-255. 128 is the center (silence).
                 const v = (dataArray[i] - 128) / 128.0; // Waveform values from -1.0 to 1.0
                 const y = (canvas.height / 2) + (v * canvas.height / 2);
