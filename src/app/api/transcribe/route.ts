@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ text: transcript.text });
-  } catch (err: any) {
-    console.error("Transcription error:", err);
-    return NextResponse.json(
-      { error: err.message ?? "Unknown error" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("Transcription error:", err);
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Unknown error" }, { status: 500 });
   }
 }
