@@ -70,38 +70,24 @@ export default function Home() {
 
   useEffect(() => {
     if (transcript?.text) {
-      if (transcript.message_type === "PartialTranscript") {
-        // Reset silence timer
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-        }
-        silenceTimerRef.current = setTimeout(() => {
-          finalizeCurrentMessage();
-        }, 2000); // 2 seconds of silence
-
-        if (lastUserMessageIdRef.current) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === lastUserMessageIdRef.current
-                ? { ...msg, text: transcript.text }
-                : msg
-            )
-          );
-        } else {
-          const newId = Date.now();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: newId,
-              timestamp: new Date(),
-              sender: "user",
-              name: "You",
-              text: transcript.text,
-            },
-          ]);
-          lastUserMessageIdRef.current = newId;
-        }
-      }
+      const newId = Date.now();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: newId,
+          timestamp: new Date(),
+          sender: "user",
+          name: "You",
+          text: transcript.text,
+        },
+        {
+          id: newId + 1,
+          timestamp: new Date(),
+          sender: "bot",
+          name: "ResQ",
+          text: `I heard you say: "${transcript.text}". How can I assist further?`,
+        },
+      ]);
     }
   }, [transcript]);
 
