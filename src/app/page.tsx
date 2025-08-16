@@ -40,7 +40,7 @@ export default function Home() {
               isFlushing = false;
             }
             silenceTimer = null;
-          }, 1000);
+          }, 2000);
         }
       } else if (silenceTimer) {
         clearTimeout(silenceTimer);
