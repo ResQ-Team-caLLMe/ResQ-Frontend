@@ -8,7 +8,6 @@ export type Transcript = {
 };
 
 export function useAudioRecorder() {
-  const [recording, setRecording] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [transcript, setTranscript] = useState<Transcript | null>(null);
 
@@ -34,7 +33,6 @@ export function useAudioRecorder() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setMediaStream(stream);
-      setRecording(true);
 
       const websocket_url = `${process.env.NEXT_PUBLIC_STT_WS_URL}` || "ws://localhost:3001"
       socketRef.current = new WebSocket(websocket_url);
@@ -71,7 +69,7 @@ export function useAudioRecorder() {
       socketRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === "transcript") {
-          console.log("Transcript received:", data); // log in browser
+          // console.log("Transcript received:", data); // log in browser
           setTranscript(data as Transcript);
         } else if (data.type === "error") {
           console.error("Server error:", data.message);
@@ -87,12 +85,10 @@ export function useAudioRecorder() {
       };
     } catch (error) {
       console.error("Error starting recording:", error);
-      setRecording(false);
     }
   };
 
   const stopRecording = () => {
-    setRecording(false);
     if (processorRef.current) {
       processorRef.current.disconnect();
     }
@@ -116,7 +112,6 @@ export function useAudioRecorder() {
   }, []);
 
   return {
-    recording,
     startRecording,
     stopRecording,
     mediaStream,

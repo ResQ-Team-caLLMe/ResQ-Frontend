@@ -2,18 +2,21 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAudioRecorder } from "./hooks/useAudioRecorder";
-import { AudioVisualizer } from "./components/AudioVisualizer";
+// import { AudioVisualizer } from "./components/AudioVisualizer";
 import { Chatbox, Message } from "./components/ChatBox";
 
 export default function Home() {
-  const { recording, startRecording, stopRecording, mediaStream, transcript } =
+  const { startRecording, stopRecording, mediaStream, transcript } =
     useAudioRecorder();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isMicOn, setMicOn] = useState(false);
+  const [inCall, setInCall] = useState(false);
 
   const lastUserMessageIdRef = useRef<number | null>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleStartCall = () => {
+    setInCall(true);
     setMessages((prev) => [
       ...prev,
       {
@@ -24,10 +27,17 @@ export default function Home() {
         text: "Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.",
       },
     ]);
-    startRecording();
+    speak("Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.", () => {
+      startRecording();
+    });
   };
 
   const handleEndCall = () => {
+    setInCall(false);
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+    setMicOn(false);
     stopRecording();
     setMessages((prev) => [
       ...prev,
@@ -39,6 +49,26 @@ export default function Home() {
         text: "Call ended",
       },
     ]);
+  };
+
+  const speak = (text: string, onDone?: () => void) => {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      utterance.rate = 1.5;
+      utterance.pitch = 1;
+
+      utterance.onstart = () => {
+        pauseMic(); // mute mic, but keep WebSocket alive
+      };
+
+      utterance.onend = () => {
+        resumeMic(); // unmute mic
+        if (onDone) onDone();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
   };
 
   // Handles marking a transcript as "final" after silence
@@ -63,8 +93,24 @@ export default function Home() {
         },
       ]);
 
+      speak(`I heard you say: "${finalText}". How can I assist further?`);
+
       // Reset for the next utterance
       lastUserMessageIdRef.current = null;
+    }
+  };
+
+  const pauseMic = () => {
+    setMicOn(false);
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.enabled = false);
+    }
+  };
+
+  const resumeMic = () => {
+    setMicOn(true);
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.enabled = true);
     }
   };
 
@@ -113,24 +159,24 @@ export default function Home() {
           AI-Powered Emergency Call Center
         </h2>
 
-        {!recording ? (
+        {inCall ? (
+          // <div className="w-full flex flex-col items-center">
+          //   {/* {mediaStream && <AudioVisualizer mediaStream={mediaStream} />} */}
+          // </div>
+
+          <button
+            onClick={handleEndCall}
+            className={`flex items-center justify-center ${isMicOn ? "bg-green-600" : "bg-gray-500"} text-white w-28 h-28 rounded-full text-lg font-bold shadow-lg hover:bg-gray-700 cursor-pointer active:scale-95 transition-all duration-200`}
+          >
+            End
+          </button>
+        ) : (
           <button
             onClick={handleStartCall}
-            className="flex items-center justify-center bg-red-700 text-white w-28 h-28 rounded-full text-2xl font-bold shadow-lg hover:bg-gray-200 hover:text-red-700 cursor-pointer active:scale-95 transition-all duration-200"
+            className="flex items-center justify-center bg-red-700 text-white w-28 h-28 rounded-full text-lg font-bold shadow-lg hover:bg-gray-200 hover:text-red-700 cursor-pointer active:scale-95 transition-all duration-200"
           >
             Call
           </button>
-        ) : (
-          <div className="w-full flex flex-col items-center">
-            {mediaStream && <AudioVisualizer mediaStream={mediaStream} />}
-
-            <button
-              onClick={handleEndCall}
-              className="flex items-center justify-center bg-gray-500 text-white w-20 h-20 rounded-full text-lg font-bold shadow-lg hover:bg-gray-700 cursor-pointer active:scale-95 transition-all duration-200 mt-4"
-            >
-              End
-            </button>
-          </div>
         )}
 
         {messages.length > 0 && <Chatbox messages={messages} />}
