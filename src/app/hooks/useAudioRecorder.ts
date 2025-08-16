@@ -36,7 +36,7 @@ export function useAudioRecorder() {
       setMediaStream(stream);
       setRecording(true);
 
-      socketRef.current = new WebSocket("ws://localhost:3001");
+      socketRef.current = new WebSocket(`${process.env.NEXT_PUBLIC_STT_WS_URL}`);
 
       socketRef.current.onopen = () => {
         console.log("WebSocket connected!");
