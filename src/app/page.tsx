@@ -6,12 +6,59 @@ import { AudioVisualizer } from "./components/AudioVisualizer";
 import { Chatbox, Message } from "./components/ChatBox";
 
 export default function Home() {
-  const { recording, startRecording, stopRecording, mediaStream, transcript } =
+  const { recording, startRecording, stopRecording, mediaStream, transcript, flush } =
     useAudioRecorder();
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const lastUserMessageIdRef = useRef<number | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // ---- silence detection here ----
+  useEffect(() => {
+    if (!recording || !mediaStream) return;
+
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    let rafId = 0;
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+    let isFlushing = false;
+
+    const check = () => {
+      analyser.getByteTimeDomainData(buf);
+      const rms =
+        Math.sqrt(buf.reduce((acc, v) => acc + Math.pow(v - 128, 2), 0) / buf.length) /
+        128;
+
+      if (rms < 0.02) {
+        if (!silenceTimer) {
+          silenceTimer = setTimeout(async () => {
+            if (!isFlushing) {
+              isFlushing = true;
+              await flush(); // ask the hook to package & send current audio
+              isFlushing = false;
+            }
+            silenceTimer = null;
+          }, 2000);
+        }
+      } else if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+
+      rafId = requestAnimationFrame(check);
+    };
+
+    check();
+
+    return () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      cancelAnimationFrame(rafId);
+      audioContext.close();
+    };
+  }, [recording, mediaStream, flush]);
+  // --------------------------------
 
   const handleStartCall = () => {
     setMessages((prev) => [
@@ -21,7 +68,8 @@ export default function Home() {
         timestamp: new Date(),
         sender: "bot",
         name: "ResQ",
-        text: "Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.",
+        text:
+          "Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.",
       },
     ]);
     startRecording();
@@ -41,54 +89,27 @@ export default function Home() {
     ]);
   };
 
-  // Handles marking a transcript as "final" after silence
-  const finalizeCurrentMessage = () => {
-    if (lastUserMessageIdRef.current) {
-      const currentMsg = messages.find(
-        (m) => m.id === lastUserMessageIdRef.current
-      );
-      if (!currentMsg) return;
-
-      const finalText = currentMsg.text;
-
-      // Add bot reply
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          timestamp: new Date(),
-          sender: "bot",
-          name: "ResQ",
-          text: `I heard you say: "${finalText}". How can I assist further?`,
-        },
-      ]);
-
-      // Reset for the next utterance
-      lastUserMessageIdRef.current = null;
-    }
-  };
-
+  // whenever a transcript arrives from a flush, append it to chat
   useEffect(() => {
-    if (transcript?.text) {
-      const newId = Date.now();
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: newId,
-          timestamp: new Date(),
-          sender: "user",
-          name: "You",
-          text: transcript.text,
-        },
-        {
-          id: newId + 1,
-          timestamp: new Date(),
-          sender: "bot",
-          name: "ResQ",
-          text: `I heard you say: "${transcript.text}". How can I assist further?`,
-        },
-      ]);
-    }
+    if (!transcript?.text) return;
+    const id = Date.now();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id,
+        timestamp: new Date(),
+        sender: "user",
+        name: "You",
+        text: transcript.text,
+      },
+      {
+        id: id + 1,
+        timestamp: new Date(),
+        sender: "bot",
+        name: "ResQ",
+        text: `I heard you say: "${transcript.text}". How can I assist further?`,
+      },
+    ]);
   }, [transcript]);
 
   return (
@@ -109,7 +130,6 @@ export default function Home() {
         ) : (
           <div className="w-full flex flex-col items-center">
             {mediaStream && <AudioVisualizer mediaStream={mediaStream} />}
-
             <button
               onClick={handleEndCall}
               className="flex items-center justify-center bg-gray-500 text-white w-20 h-20 rounded-full text-lg font-bold shadow-lg hover:bg-gray-700 cursor-pointer active:scale-95 transition-all duration-200 mt-4"
