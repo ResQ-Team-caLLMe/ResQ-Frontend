@@ -7,16 +7,12 @@ import { Box, Typography, Button, Toolbar, AppBar } from "@mui/material";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-// Hardcoded bot responses
-const botResponses = [
-    "**IMPORTANT: If the situation is safe or help has arrived, say 'SAFE' or 'ALL CLEAR'.**\n\nI understand this is an emergency. To assist you effectively, I need some important information.",
-    "Where is the location of the incident?",
-    "Okay, I have some understanding of the situation. Let me confirm a few more important details.",
-    "What is the condition of the victim right now?",
-    "Almost all information is complete. I will process the emergency assistance for you immediately.",
-    "Is there still any danger in the surrounding area?",
-    "Thank you for confirming. The emergency call has been safely completed. I hope everything goes well. Stay safe and don’t hesitate to reach us again if needed.",
-];
+type StartBody = {
+    user_input: string;
+    language?: string;
+    caller_phone?: string;
+    session_id?: string;
+};
 
 export default function CallPage() {
     const router = useRouter();
@@ -35,80 +31,101 @@ export default function CallPage() {
     const [isMicOn, setMicOn] = useState(false);
     const [inCall, setInCall] = useState(false);
     const [userInput, setUserInput] = useState("");
-
-    // New state to track conversation flow
-    const [conversationStep, setConversationStep] = useState(0);
+    const [sessionId, setSessionId] = useState<string | null>(null);
 
     const lastUserMessageIdRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // New helper to ONLY add a bot message to the chat UI
-    const addBotMessage = (text: string) => {
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now() + Math.random(), // Unique ID
-                timestamp: new Date(),
-                sender: "bot",
-                name: "ResQ",
-                text: text,
-            },
-        ]);
-    };
-
-    // This function now adds all text first, then speaks
     const sendToLLM = async (text: string) => {
-        // A 3-second delay happens BEFORE the bot's response
-        setTimeout(() => {
-            switch (conversationStep) {
-                case 0: // 1st user input
-                    // 1. Add both text messages to the chat UI first
-                    addBotMessage(botResponses[0]);
-                    addBotMessage(botResponses[1]);
+        const baseUrl =
+            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3002";
 
-                    // 2. Then, speak them sequentially
-                    speak(botResponses[0], () => {
-                        speak(botResponses[1]);
-                    });
-                    break;
+        try {
+            const endpoint = sessionId
+                ? `${baseUrl}/api/v1/conversational/continue`
+                : `${baseUrl}/api/v1/conversational/start`;
 
-                case 1: // 2nd user input
-                    addBotMessage(botResponses[2]);
-                    addBotMessage(botResponses[3]);
+            const body: StartBody = {
+                user_input: text,
+            };
 
-                    speak(botResponses[2], () => {
-                        speak(botResponses[3]);
-                    });
-                    break;
-
-                case 2: // 3rd user input
-                    addBotMessage(botResponses[4]);
-                    addBotMessage(botResponses[5]);
-
-                    speak(botResponses[4], () => {
-                        speak(botResponses[5]);
-                    });
-                    break;
-
-                case 3: // 4th user input (final response)
-                    addBotMessage(botResponses[6]);
-
-                    speak(botResponses[6], () => {
-                        handleEndCall();
-                    });
-                    break;
-
-                default:
-                    console.warn("Conversation flow ended or step is out of bounds.");
-                    break;
+            // only needed on start
+            if (!sessionId) {
+                body.language = "id";
+                body.caller_phone = "+6281234567890";
+            } else {
+                body.session_id = sessionId;
             }
-            setConversationStep((prev) => prev + 1);
-        }, 1500); // 3-second delay
+
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+
+            const result = await res.json();
+
+            // save session_id if first call
+            if (result.session_id && !sessionId) {
+                setSessionId(result.session_id);
+            }
+
+            // Bot’s main response
+            if (result.system_response) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now() + 1,
+                        timestamp: new Date(),
+                        sender: "bot",
+                        name: "ResQ",
+                        text: result.system_response,
+                    },
+                ]);
+                speak(result.system_response);
+            }
+
+            // Optional next questions
+            if (result.next_questions?.length > 0) {
+                const combined = result.next_questions.join(" ");
+                const newMessage: Message = {
+                    id: Date.now() + Math.random(),
+                    timestamp: new Date(),
+                    sender: "bot",
+                    name: "ResQ",
+                    text: combined,
+                };
+                setMessages((prev) => [...prev, newMessage]);
+                speak(combined);
+            }
+
+            // Final dispatch
+            if (result.emergency_processing?.caller_response) {
+                const finalText = result.emergency_processing.caller_response;
+
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now() + 2,
+                        timestamp: new Date(),
+                        sender: "bot",
+                        name: "ResQ",
+                        text: finalText,
+                    },
+                ]);
+
+                // speak and end call after playback
+                speak(finalText, () => {
+                    handleEndCall();
+                });
+            }
+        } catch (err) {
+            console.error("LLM API error:", err);
+        }
     };
 
     const handleStartCall = () => {
-        setConversationStep(0); // Reset conversation on new call
         setInCall(true);
         setMessages((prev) => {
             const timestamp = Date.now();
@@ -136,8 +153,8 @@ export default function CallPage() {
     };
 
     const handleEndCall = () => {
-        setConversationStep(0); // Reset conversation on end call
         setInCall(false);
+        setSessionId(null); // reset session
 
         // Stop any currently playing audio safely
         if (audioRef.current) {
@@ -187,7 +204,7 @@ export default function CallPage() {
         lastUserMessageIdRef.current = newId;
         setUserInput(""); // clear input
 
-        // Trigger the hardcoded response flow
+        // Send to LLM API
         sendToLLM(text);
     };
 
@@ -201,11 +218,11 @@ export default function CallPage() {
             const finalText = currentMsg.text;
             lastUserMessageIdRef.current = null;
 
-            // Trigger the hardcoded response flow
+            // use ref-safe call
             sendToLLM(finalText);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [messages, conversationStep]); // Added dependencies
+    }, []);
 
     const speak = async (text: string, onDone?: () => void) => {
         try {
@@ -306,7 +323,6 @@ export default function CallPage() {
         }
     }, [transcript, finalizeCurrentMessage]);
 
-    // --- JSX remains the same from here ---
     return (
         <Box
             sx={{
@@ -323,8 +339,8 @@ export default function CallPage() {
                 position="fixed"
                 sx={{
                     backgroundColor: "rgba(0, 0, 0, 0.4)", // semi-transparent black
-                    backdropFilter: "blur(12px)",       // blur effect
-                    WebkitBackdropFilter: "blur(12px)",   // Safari support
+                    backdropFilter: "blur(12px)",          // blur effect
+                    WebkitBackdropFilter: "blur(12px)",    // Safari support
                     borderBottom: "1px solid rgba(255,255,255,0.1)", // subtle line
                     boxShadow: "none",
                 }}
