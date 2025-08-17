@@ -2,8 +2,14 @@
 
 import { AppBar, Toolbar, Typography, Button, Container, Card, CardContent, Box, Grid, Divider } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const router = useRouter();
+
+  const goToCall = () => {
+    router.push("/call");
+  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -57,7 +63,15 @@ export default function HomePage() {
           {/* Right */}
           <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: 2 }}>
             <Button variant="outlined" sx={{ borderRadius: 4 }}>Request Demo</Button>
-            <Button variant="contained" color="error" sx={{ borderRadius: 4 }} startIcon={<PhoneIcon />}>CALL</Button>
+            <Button
+              variant="contained"
+              color="error"
+              sx={{ borderRadius: 4 }}
+              startIcon={<PhoneIcon />}
+              onClick={goToCall}
+            >
+              CALL
+            </Button>
           </Box>
         </Toolbar>
       </AppBar>
@@ -128,8 +142,24 @@ export default function HomePage() {
         </Typography>
 
         <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-          <Button variant="contained" color="error" size="large" startIcon={<PhoneIcon />} sx={{ borderRadius: 4 }}>CALL</Button>
-          <Button variant="outlined" size="large" sx={{ color: "white", borderColor: "gray", borderRadius: 4 }}>See How It Works</Button>
+          <Button
+            variant="contained"
+            color="error"
+            size="large"
+            startIcon={<PhoneIcon />}
+            sx={{ borderRadius: 4 }}
+            onClick={goToCall}
+          >
+            CALL
+          </Button>
+          <Button
+            variant="outlined"
+            size="large"
+            sx={{ color: "white", borderColor: "gray", borderRadius: 4 }}
+            onClick={() => scrollToSection("how-it-works")}
+          >
+            See How It Works
+          </Button>
         </Box>
       </Container>
 
