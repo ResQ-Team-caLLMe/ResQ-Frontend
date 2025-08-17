@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { Chatbox, Message } from "../components/ChatBox";
 import { Box, Typography, Button, Toolbar, AppBar } from "@mui/material";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function CallPage() {
     const router = useRouter();
@@ -157,7 +158,7 @@ export default function CallPage() {
     };
 
     // Handles marking a transcript as "final" after silence
-    const finalizeCurrentMessage = () => {
+    const finalizeCurrentMessage = useCallback(() => {
         if (lastUserMessageIdRef.current) {
             const currentMsg = messages.find(
                 (m) => m.id === lastUserMessageIdRef.current
@@ -166,7 +167,6 @@ export default function CallPage() {
 
             const finalText = currentMsg.text;
 
-            // Add bot reply
             setMessages((prev) => [
                 ...prev,
                 {
@@ -179,11 +179,9 @@ export default function CallPage() {
             ]);
 
             speak(`I heard you say: "${finalText}". How can I assist further?`);
-
-            // Reset for the next utterance
             lastUserMessageIdRef.current = null;
         }
-    };
+    }, [messages]);
 
     const pauseMic = () => {
         setMicOn(false);
@@ -234,7 +232,7 @@ export default function CallPage() {
                 }
             }
         }
-    }, [transcript]);
+    }, [transcript, finalizeCurrentMessage]);
 
     return (
         <Box
@@ -269,9 +267,11 @@ export default function CallPage() {
                         }}
                         onClick={goToHome}
                     >
-                        <img
+                        <Image
                             src="/logo_ResQ.png"
                             alt="ResQ Logo"
+                            width={80}
+                            height={80}
                             style={{
                                 height: 80,
                                 transform: "scale(1.5)", // enlarge without changing AppBar height

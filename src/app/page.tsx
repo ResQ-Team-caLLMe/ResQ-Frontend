@@ -3,6 +3,7 @@
 import { AppBar, Toolbar, Typography, Button, Container, Card, CardContent, Box, Grid, Divider } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import DashboardPreview from "./components/DashboardPreview";
 
 export default function HomePage() {
@@ -21,15 +22,6 @@ export default function HomePage() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
-  };
-
-  const frostedCardStyle = {
-    p: 2,
-    borderRadius: 3,
-    bgcolor: "rgba(255,255,255,0.01)",
-    backdropFilter: "blur(15px)",
-    WebkitBackdropFilter: "blur(15px)",
-    boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
   };
 
   return (
@@ -56,9 +48,11 @@ export default function HomePage() {
             }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            <img
+            <Image
               src="/logo_ResQ.png"
               alt="ResQ Logo"
+              width={80}
+              height={80}
               style={{
                 height: 80,
                 transform: "scale(1.5)", // enlarge without changing AppBar height

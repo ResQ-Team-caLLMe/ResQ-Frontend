@@ -3,6 +3,7 @@
 import { AppBar, Toolbar, Typography, Button, Container, Card, CardContent, Box, Grid, Divider, Table, TableHead, TableRow, TableCell, TableBody, TablePagination } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import React from "react";
 import dynamic from "next/dynamic";
 
@@ -103,9 +104,11 @@ export default function DashboardPage() {
                         }}
                         onClick={goToHome}
                     >
-                        <img
+                        <Image
                             src="/logo_ResQ.png"
                             alt="ResQ Logo"
+                            width={80}
+                            height={80}
                             style={{
                                 height: 80,
                                 transform: "scale(1.5)", // enlarge without changing AppBar height

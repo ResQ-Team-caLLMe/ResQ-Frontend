@@ -8,7 +8,13 @@ import {
     Grid,
     Button,
 } from "@mui/material";
-import LiveMap from "./LiveMap";
+import dynamic from "next/dynamic"; // 👈 Import dynamic
+
+// 👇 Dynamically import LiveMap with SSR turned off
+const LiveMap = dynamic(() => import("./LiveMap"), {
+    ssr: false,
+    loading: () => <p>Loading map...</p> // Optional: Add a loading state
+});
 
 export default function PreviewDashboard({
     goToDashboard,
@@ -43,8 +49,8 @@ export default function PreviewDashboard({
                 <Grid container spacing={2}>
                     {[
                         { title: "Incoming", value: 12 },
-                        { title: "Emergency", value: 5 },
-                        { title: "Resolved", value: 8 },
+                        { title: "Queued", value: 5 },
+                        { title: "Filtered", value: 8 },
                     ].map((stat, i) => (
                         <Grid size={{ xs: 4 }} key={i}>
                             <Card
