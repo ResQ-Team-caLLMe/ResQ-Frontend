@@ -6,11 +6,15 @@ import { Chatbox, Message } from "../components/ChatBox";
 import { Box, Typography, Button, Toolbar, AppBar } from "@mui/material";
 import { useRouter } from "next/navigation";
 
-export default function Home() {
+export default function CallPage() {
     const router = useRouter();
 
     const goToHome = () => {
         router.push("/");
+    };
+
+    const goToDashboard = () => {
+        router.push("/dashboard");
     };
 
     const { startRecording, stopRecording, mediaStream, transcript } =
@@ -278,7 +282,7 @@ export default function Home() {
                         }}
                     >
                         <Button color="inherit" onClick={goToHome}>Home</Button>
-                        <Button color="inherit" onClick={goToHome}>Dashboard</Button>
+                        <Button color="inherit" onClick={goToDashboard}>Dashboard</Button>
                     </Box>
 
                     {/* Right */}

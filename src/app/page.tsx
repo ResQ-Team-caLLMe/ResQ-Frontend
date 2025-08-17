@@ -11,6 +11,10 @@ export default function HomePage() {
     router.push("/call");
   };
 
+  const goToDashboard = () => {
+    router.push("/dashboard");
+  };
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -394,7 +398,10 @@ export default function HomePage() {
               mt: { xs: 2, sm: 0 }, // add margin-top on mobile
             }}
           >
-            <Button variant="outlined" sx={{ color: "white", borderRadius: 4, borderColor: "gray", whiteSpace: "nowrap" }}>
+            <Button
+              onClick={goToDashboard}
+              variant="outlined"
+              sx={{ color: "white", borderRadius: 4, borderColor: "gray", whiteSpace: "nowrap" }}>
               View Dashboard
             </Button>
           </Box>
