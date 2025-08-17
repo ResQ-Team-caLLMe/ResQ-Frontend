@@ -4,6 +4,14 @@ import { AppBar, Toolbar, Typography, Button, Container, Card, CardContent, Box,
 import PhoneIcon from "@mui/icons-material/Phone";
 
 export default function HomePage() {
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <Box sx={{ bgcolor: "black", color: "white", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Navbar */}
@@ -17,20 +25,33 @@ export default function HomePage() {
           boxShadow: "none",
         }}
       >
-        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+        <Toolbar sx={{ position: "relative" }}>
           {/* Left */}
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" fontWeight="bold">
+          <Box>
+            <Typography
+              sx={{ cursor: "pointer" }}
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              variant="h6"
+              fontWeight="bold"
+            >
               ResQ
             </Typography>
           </Box>
 
           {/* Middle - centered nav */}
-          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 4, flex: 1, justifyContent: "center" }}>
-            <Button color="inherit">How It Works</Button>
-            <Button color="inherit">Partners</Button>
-            <Button color="inherit">Dashboard</Button>
-            <Button color="inherit">About</Button>
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              gap: 4,
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+            }}
+          >
+            <Button color="inherit" onClick={() => scrollToSection("how-it-works")}>How It Works</Button>
+            <Button color="inherit" onClick={() => scrollToSection("partners")}>Partners</Button>
+            <Button color="inherit" onClick={() => scrollToSection("dashboard")}>Dashboard</Button>
+            <Button color="inherit" onClick={() => scrollToSection("about")}>About</Button>
           </Box>
 
           {/* Right */}
@@ -41,10 +62,9 @@ export default function HomePage() {
         </Toolbar>
       </AppBar>
 
-      {/* Hero Section */}
       <Container sx={{ textAlign: "center", pt: 12 }}>
         {/* Status button */}
-        <Button
+        {/* <Button
           variant="outlined"
           size="small"
           sx={{
@@ -73,7 +93,7 @@ export default function HomePage() {
           }
         >
           LIVE—READY FOR JAKARTA 112
-        </Button>
+        </Button> */}
 
         <Typography
           variant="h2"
@@ -124,7 +144,7 @@ export default function HomePage() {
             <Grid size={{ xs: 12, md: 4 }} key={i}>
               <Card
                 sx={{
-                  py: 2,
+                  py: 4,
                   position: "relative",
                   borderRadius: 3,
                   overflow: "hidden",
@@ -154,7 +174,7 @@ export default function HomePage() {
               >
                 <CardContent sx={{ textAlign: "center", position: "relative", zIndex: 1 }}>
                   <Typography
-                    variant="h3"
+                    variant="h2"
                     fontWeight="bold"
                     sx={{ color: "#FFFFFF", mb: 1 }}
                   >
@@ -171,63 +191,7 @@ export default function HomePage() {
       </Container>
 
       <Divider
-        sx={{
-          width: "90%",          // 80% of the container/screen
-          mx: "auto",            // center horizontally
-          borderColor: "rgba(255,255,255,0.2)",
-          my: 6,                 // vertical spacing
-        }}
-      />
-
-      {/* Partners */}
-      <Container sx={{ py: 2 }}>
-        <Typography variant="h4" fontWeight="bold" textAlign="center" mb={4}>
-          Partnered with First Responder
-        </Typography>
-
-        <Grid container spacing={4}>
-          {[
-            { title: "Firefighters", icon: "🔥" },
-            { title: "Police", icon: "🚓" },
-            { title: "Hospitals", icon: "🏥" },
-            { title: "Ambulance", icon: "🚑" },
-          ].map((item, i) => (
-            <Grid size={{ xs: 12, md: 3 }} key={i}>
-              <Card
-                sx={{
-                  position: "relative",
-                  borderRadius: 3,
-                  overflow: "hidden",
-                  bgcolor: "rgba(255,255,255,0.05)",
-                  border: "none",
-                  backdropFilter: "blur(15px)",
-                  WebkitBackdropFilter: "blur(15px)",
-                  boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    background: `
-                radial-gradient(circle at bottom right, rgba(255,255,255,0.15), transparent 60%)
-              `,
-                    pointerEvents: "none",
-                  },
-                }}
-              >
-                <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, position: "relative", zIndex: 1 }}>
-                  <Box sx={{ fontSize: 32 }}>{item.icon}</Box>
-                  <Typography variant={"h6"} color="white">{item.title}</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      <Divider
+        id="how-it-works"
         sx={{
           width: "90%",          // 80% of the container/screen
           mx: "auto",            // center horizontally
@@ -288,6 +252,65 @@ export default function HomePage() {
       </Container>
 
       <Divider
+        id="partners"
+        sx={{
+          width: "90%",          // 80% of the container/screen
+          mx: "auto",            // center horizontally
+          borderColor: "rgba(255,255,255,0.2)",
+          my: 6,                 // vertical spacing
+        }}
+      />
+
+      {/* Partners */}
+      <Container sx={{ py: 2 }}>
+        <Typography variant="h4" fontWeight="bold" textAlign="center" mb={4}>
+          Partnered with First Responder
+        </Typography>
+
+        <Grid container spacing={4}>
+          {[
+            { title: "Firefighters", icon: "🔥" },
+            { title: "Police", icon: "🚓" },
+            { title: "Hospitals", icon: "🏥" },
+            { title: "Ambulance", icon: "🚑" },
+          ].map((item, i) => (
+            <Grid size={{ xs: 12, md: 3 }} key={i}>
+              <Card
+                sx={{
+                  position: "relative",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  border: "none",
+                  backdropFilter: "blur(15px)",
+                  WebkitBackdropFilter: "blur(15px)",
+                  boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: `
+                radial-gradient(circle at bottom right, rgba(255,255,255,0.15), transparent 60%)
+              `,
+                    pointerEvents: "none",
+                  },
+                }}
+              >
+                <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, position: "relative", zIndex: 1 }}>
+                  <Box sx={{ fontSize: 32 }}>{item.icon}</Box>
+                  <Typography variant={"h6"} color="white">{item.title}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      <Divider
+        id="dashboard"
         sx={{
           width: "90%",          // 80% of the container/screen
           mx: "auto",            // center horizontally
@@ -313,7 +336,7 @@ export default function HomePage() {
       </Container>
 
       {/* About */}
-      <Container sx={{ py: 2 }}>
+      <Container id="about" sx={{ py: 2 }}>
         <Container
           sx={{
             py: 8,
@@ -407,6 +430,6 @@ export default function HomePage() {
         © 2025 ResQ. All rights reserved.
       </Typography>
 
-    </Box>
+    </Box >
   );
 }
