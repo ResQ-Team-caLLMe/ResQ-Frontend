@@ -39,7 +39,7 @@ export default function DashboardPage() {
     };
 
     const [page, setPage] = React.useState(0);
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
+    const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
     const handleChangePage = (event: unknown, newPage: number) => {
         setPage(newPage);
@@ -271,11 +271,11 @@ export default function DashboardPage() {
                                 <Table sx={{ color: "white" }}>
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell sx={{ color: "white" }}>Time</TableCell>
-                                            <TableCell sx={{ color: "white" }}>Type</TableCell>
-                                            <TableCell sx={{ color: "white" }}>Caller</TableCell>
-                                            <TableCell sx={{ color: "white" }}>Summary</TableCell>
-                                            <TableCell sx={{ color: "white" }}>Status</TableCell>
+                                            <TableCell sx={{ color: "white", fontWeight: "bold" }}>Time</TableCell>
+                                            <TableCell sx={{ color: "white", fontWeight: "bold" }}>Type</TableCell>
+                                            <TableCell sx={{ color: "white", fontWeight: "bold" }}>Caller</TableCell>
+                                            <TableCell sx={{ color: "white", fontWeight: "bold" }}>Summary</TableCell>
+                                            <TableCell sx={{ color: "white", fontWeight: "bold" }}>Status</TableCell>
                                         </TableRow>
                                     </TableHead>
 
@@ -316,7 +316,16 @@ export default function DashboardPage() {
                                     onPageChange={handleChangePage}
                                     rowsPerPage={rowsPerPage}
                                     onRowsPerPageChange={handleChangeRowsPerPage}
-                                    sx={{ color: "white" }}
+                                    rowsPerPageOptions={[10, 25, 50]}
+                                    sx={{
+                                        color: "white",
+                                        "& .MuiTablePagination-actions button": {
+                                            color: "white",              // active buttons white
+                                        },
+                                        "& .MuiTablePagination-actions button.Mui-disabled": {
+                                            color: "gray",               // disabled buttons gray
+                                        },
+                                    }}
                                 />
                             </CardContent>
                         </Card>
