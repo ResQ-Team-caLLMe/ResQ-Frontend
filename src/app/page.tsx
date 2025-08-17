@@ -294,15 +294,14 @@ export default function HomePage() {
       {/* Partners */}
       <Container sx={{ py: 2 }}>
         <Typography variant="h4" fontWeight="bold" textAlign="center" mb={4}>
-          Partnered with First Responder
+          Partnered with First Responders
         </Typography>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={4} justifyContent="center">
           {[
             { title: "Firefighters", icon: "🔥" },
             { title: "Police", icon: "🚓" },
             { title: "Hospitals", icon: "🏥" },
-            { title: "Ambulance", icon: "🚑" },
           ].map((item, i) => (
             <Grid size={{ xs: 12, md: 3 }} key={i}>
               <Card
@@ -329,9 +328,21 @@ export default function HomePage() {
                   },
                 }}
               >
-                <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, position: "relative", zIndex: 1 }}>
-                  <Box sx={{ fontSize: 32 }}>{item.icon}</Box>
-                  <Typography variant={"h6"} color="white">{item.title}</Typography>
+                <CardContent
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 2,
+                    position: "relative",
+                    zIndex: 1,
+                    flexDirection: "column", // stack icon on top of text
+                  }}
+                >
+                  <Box sx={{ fontSize: 48 }}>{item.icon}</Box>
+                  <Typography variant="h6" color="white" textAlign="center">
+                    {item.title}
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -351,17 +362,42 @@ export default function HomePage() {
 
       {/* Dashboard */}
       <Container sx={{ py: 2 }}>
-        <Container sx={{ py: 8, mb: 4, borderRadius: 4, background: "linear-gradient(to right, rgba(127,29,29,0.2), rgba(29,78,216,0.2))" }}>
-          <Typography variant="h3" fontWeight="bold" gutterBottom>
-            Operational Dashboard
-          </Typography>
-          <Typography sx={{ color: "#d1d5db", maxWidth: 600 }}>
-            Real-time calls, map view, prank score, and dispatch status — designed for operators and supervisors.
-          </Typography>
-          {/* <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
-            <Button variant="outlined" sx={{ borderRadius: 4 }}>Request Agency Demo</Button>
-            <Button variant="contained" color="error" sx={{ borderRadius: 4 }} startIcon={<PhoneIcon />}>CALL</Button>
-          </Box> */}
+        <Container
+          sx={{
+            py: 8,
+            px: 4,
+            mb: 4,
+            borderRadius: 4,
+            background: "linear-gradient(to right, rgba(127,29,29,0.2), rgba(29,78,216,0.2))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Box sx={{ maxWidth: 600 }}>
+            <Typography variant="h3" fontWeight="bold" gutterBottom>
+              Operational Dashboard
+            </Typography>
+            <Typography sx={{ color: "#d1d5db" }}>
+              Real‑time calls, map view, prank score, and dispatch status — designed for operators and supervisors.
+            </Typography>
+          </Box>
+
+          {/* Right box for the button */}
+          <Box
+            sx={{
+              width: { xs: "100%", sm: 200 }, // responsive width
+              display: "flex",
+              justifyContent: "center",
+              mt: { xs: 2, sm: 0 }, // add margin-top on mobile
+            }}
+          >
+            <Button variant="outlined" sx={{ color: "white", borderRadius: 4, borderColor: "gray", whiteSpace: "nowrap" }}>
+              View Dashboard
+            </Button>
+          </Box>
         </Container>
       </Container>
 

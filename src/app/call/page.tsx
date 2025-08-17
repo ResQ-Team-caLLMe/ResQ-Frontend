@@ -3,9 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { Chatbox, Message } from "../components/ChatBox";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, Toolbar, AppBar } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+    const router = useRouter();
+
+    const goToHome = () => {
+        router.push("/");
+    };
+
     const { startRecording, stopRecording, mediaStream, transcript } =
         useAudioRecorder();
     const [messages, setMessages] = useState<Message[]>([]);
@@ -47,9 +54,13 @@ export default function Home() {
     const handleEndCall = () => {
         setInCall(false);
 
-        // Stop any currently playing audio
+        // Stop any currently playing audio safely
         if (audioRef.current) {
-            audioRef.current.pause();
+            try {
+                audioRef.current.pause();
+            } catch (err) {
+                console.warn("Audio already stopped or invalid state", err);
+            }
             audioRef.current = null;
         }
 
@@ -129,7 +140,7 @@ export default function Home() {
                 };
 
                 audio.onended = () => {
-                    resumeMic(); // unmute mic
+                    resumeMic();
                     audioRef.current = null;
                     if (onDone) onDone();
                 };
@@ -233,29 +244,67 @@ export default function Home() {
                 fontFamily: "sans-serif",
             }}
         >
+            <AppBar
+                position="fixed"
+                sx={{
+                    backgroundColor: "rgba(0, 0, 0, 0.4)", // semi-transparent black
+                    backdropFilter: "blur(12px)",          // blur effect
+                    WebkitBackdropFilter: "blur(12px)",    // Safari support
+                    borderBottom: "1px solid rgba(255,255,255,0.1)", // subtle line
+                    boxShadow: "none",
+                }}
+            >
+                <Toolbar sx={{ position: "relative" }}>
+                    {/* Left */}
+                    <Box>
+                        <Typography
+                            sx={{ cursor: "pointer" }}
+                            onClick={goToHome}
+                            variant="h6"
+                            fontWeight="bold"
+                        >
+                            ResQ
+                        </Typography>
+                    </Box>
+
+                    {/* Middle - centered nav */}
+                    <Box
+                        sx={{
+                            display: { xs: "none", md: "flex" },
+                            gap: 4,
+                            position: "absolute",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                        }}
+                    >
+                        <Button color="inherit" onClick={goToHome}>Home</Button>
+                        <Button color="inherit" onClick={goToHome}>Dashboard</Button>
+                    </Box>
+
+                    {/* Right */}
+                    <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                        <Button variant="outlined" sx={{ borderRadius: 4 }}>Request Demo</Button>
+                    </Box>
+                </Toolbar>
+            </AppBar>
+
             <Box
                 sx={{
                     width: "100%",
                     maxWidth: 600,
                     mx: "auto",
+                    mt: 4,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                 }}
             >
                 <Typography
-                    variant="h3"
-                    component="h1"
-                    sx={{ fontWeight: "bold", mb: 1, textAlign: "center" }}
-                >
-                    ResQ
-                </Typography>
-                <Typography
                     variant="h6"
                     component="h2"
                     sx={{ fontWeight: 300, mb: 2, textAlign: "center" }}
                 >
-                    AI-Powered Emergency Call Center
+                    {inCall ? "Click end to terminate the call" : "Press call to connect"}
                 </Typography>
 
                 {inCall ? (
@@ -283,7 +332,7 @@ export default function Home() {
                         >
                             End
                         </Button>
-                        <Typography>
+                        <Typography color={isMicOn ? "white" : "gray"}>
                             {isMicOn ? "You can talk now " : "You can talk after the mic turned green"}
                         </Typography>
                         <Box

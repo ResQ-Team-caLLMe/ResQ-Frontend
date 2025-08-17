@@ -33,7 +33,7 @@ export const Chatbox = ({ messages }: ChatboxProps) => {
             ref={chatboxRef}
             sx={{
                 width: "100%",
-                height: 300,
+                height: 330,
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
