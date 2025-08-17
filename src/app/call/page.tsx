@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 // import { AudioVisualizer } from "./components/AudioVisualizer";
 import { Chatbox, Message } from "../components/ChatBox";
+import { Box, Typography, Button } from "@mui/material";
 
 export default function Home() {
     const { startRecording, stopRecording, mediaStream, transcript } =
@@ -14,6 +15,7 @@ export default function Home() {
 
     const lastUserMessageIdRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const handleStartCall = () => {
         setInCall(true);
@@ -34,11 +36,16 @@ export default function Home() {
 
     const handleEndCall = () => {
         setInCall(false);
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
+
+        // Stop any currently playing audio
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
         }
+
         setMicOn(false);
         stopRecording();
+
         setMessages((prev) => [
             ...prev,
             {
@@ -51,23 +58,39 @@ export default function Home() {
         ]);
     };
 
-    const speak = (text: string, onDone?: () => void) => {
-        if ("speechSynthesis" in window) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = "en-US";
-            utterance.rate = 1.5;
-            utterance.pitch = 1;
+    const speak = async (text: string, onDone?: () => void) => {
+        try {
+            const res = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text }),
+            });
 
-            utterance.onstart = () => {
-                pauseMic(); // mute mic, but keep WebSocket alive
-            };
+            const data = await res.json();
+            if (data.audioContent) {
+                // Stop previous audio if any
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current = null;
+                }
 
-            utterance.onend = () => {
-                resumeMic(); // unmute mic
-                if (onDone) onDone();
-            };
+                const audio = new Audio("data:audio/mp3;base64," + data.audioContent);
+                audioRef.current = audio;
 
-            window.speechSynthesis.speak(utterance);
+                audio.onplay = () => {
+                    pauseMic(); // mute mic
+                };
+
+                audio.onended = () => {
+                    resumeMic(); // unmute mic
+                    audioRef.current = null;
+                    if (onDone) onDone();
+                };
+
+                await audio.play();
+            }
+        } catch (err) {
+            console.error("TTS error:", err);
         }
     };
 
@@ -152,35 +175,100 @@ export default function Home() {
     }, [transcript]);
 
     return (
-        <div className="text-white min-h-screen flex flex-col justify-center items-center p-4 sm:p-8 font-sans">
-            <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 text-center">ResQ</h1>
-                <h2 className="text-xl md:text-2xl font-light mb-6 text-center">
+        <Box
+            sx={{
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                p: { xs: 2, sm: 4 },
+                fontFamily: "sans-serif",
+            }}
+        >
+            <Box
+                sx={{
+                    width: "100%",
+                    maxWidth: 600,
+                    mx: "auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                }}
+            >
+                <Typography
+                    variant="h3"
+                    component="h1"
+                    sx={{ fontWeight: "bold", mb: 1, textAlign: "center" }}
+                >
+                    ResQ
+                </Typography>
+                <Typography
+                    variant="h5"
+                    component="h2"
+                    sx={{ fontWeight: 300, mb: 3, textAlign: "center" }}
+                >
                     AI-Powered Emergency Call Center
-                </h2>
+                </Typography>
 
                 {inCall ? (
-                    // <div className="w-full flex flex-col items-center">
-                    //   {/* {mediaStream && <AudioVisualizer mediaStream={mediaStream} />} */}
-                    // </div>
-
-                    <button
-                        onClick={handleEndCall}
-                        className={`flex items-center justify-center ${isMicOn ? "bg-green-600" : "bg-gray-500"} text-white w-28 h-28 rounded-full text-lg font-bold shadow-lg hover:bg-gray-700 cursor-pointer active:scale-95 transition-all duration-200`}
-                    >
-                        End
-                    </button>
+                    <>
+                        <Button
+                            onClick={handleEndCall}
+                            variant="contained"
+                            sx={{
+                                bgcolor: isMicOn ? "success.main" : "grey.500",
+                                width: 112,
+                                height: 112,
+                                borderRadius: "50%",
+                                fontSize: "1rem",
+                                fontWeight: "bold",
+                                mb: 1,
+                                boxShadow: 3,
+                                "&:hover": {
+                                    bgcolor: "grey.700",
+                                },
+                                transition: "all 0.2s",
+                                ":active": {
+                                    transform: "scale(0.95)",
+                                },
+                            }}
+                        >
+                            End
+                        </Button>
+                        <Typography>
+                            {isMicOn ? "You can talk now " : "You can talk after the mic turned green"}
+                        </Typography>
+                    </>
                 ) : (
-                    <button
+                    <Button
                         onClick={handleStartCall}
-                        className="flex items-center justify-center bg-red-700 text-white w-28 h-28 rounded-full text-lg font-bold shadow-lg hover:bg-gray-200 hover:text-red-700 cursor-pointer active:scale-95 transition-all duration-200"
+                        variant="contained"
+                        sx={{
+                            bgcolor: "error.main",
+                            color: "white",
+                            width: 112,
+                            height: 112,
+                            borderRadius: "50%",
+                            fontSize: "1rem",
+                            fontWeight: "bold",
+                            boxShadow: 3,
+                            "&:hover": {
+                                bgcolor: "grey.200",
+                                color: "error.main",
+                            },
+                            transition: "all 0.2s",
+                            ":active": {
+                                transform: "scale(0.95)",
+                            },
+                        }}
                     >
                         Call
-                    </button>
+                    </Button>
                 )}
 
                 {messages.length > 0 && <Chatbox messages={messages} />}
-            </div>
-        </div>
+            </Box>
+        </Box>
     );
 }
