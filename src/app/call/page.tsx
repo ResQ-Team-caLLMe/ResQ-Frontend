@@ -36,14 +36,14 @@ export default function CallPage() {
     const [inCall, setInCall] = useState(false);
     const [userInput, setUserInput] = useState("");
 
-    // New state to track conversation flow
+    // State to track conversation flow
     const [conversationStep, setConversationStep] = useState(0);
 
     const lastUserMessageIdRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // New helper to ONLY add a bot message to the chat UI
+    // Helper to ONLY add a bot message to the chat UI
     const addBotMessage = (text: string) => {
         setMessages((prev) => [
             ...prev,
@@ -57,58 +57,48 @@ export default function CallPage() {
         ]);
     };
 
-    // This function now adds all text first, then speaks
+    // This function adds all text first, then speaks
     const sendToLLM = async (text: string) => {
-        // A 3-second delay happens BEFORE the bot's response
+        // A 1.5-second delay happens BEFORE the bot's response
         setTimeout(() => {
             switch (conversationStep) {
                 case 0: // 1st user input
-                    // 1. Add both text messages to the chat UI first
                     addBotMessage(botResponses[0]);
                     addBotMessage(botResponses[1]);
-
-                    // 2. Then, speak them sequentially
                     speak(botResponses[0], () => {
                         speak(botResponses[1]);
                     });
                     break;
-
                 case 1: // 2nd user input
                     addBotMessage(botResponses[2]);
                     addBotMessage(botResponses[3]);
-
                     speak(botResponses[2], () => {
                         speak(botResponses[3]);
                     });
                     break;
-
                 case 2: // 3rd user input
                     addBotMessage(botResponses[4]);
                     addBotMessage(botResponses[5]);
-
                     speak(botResponses[4], () => {
                         speak(botResponses[5]);
                     });
                     break;
-
                 case 3: // 4th user input (final response)
                     addBotMessage(botResponses[6]);
-
                     speak(botResponses[6], () => {
                         handleEndCall();
                     });
                     break;
-
                 default:
                     console.warn("Conversation flow ended or step is out of bounds.");
                     break;
             }
             setConversationStep((prev) => prev + 1);
-        }, 1500); // 3-second delay
+        }, 1500); // 1.5-second delay
     };
 
     const handleStartCall = () => {
-        setConversationStep(0); // Reset conversation on new call
+        setConversationStep(0);
         setInCall(true);
         setMessages((prev) => {
             const timestamp = Date.now();
@@ -122,7 +112,7 @@ export default function CallPage() {
                     text: "Call started",
                 },
                 {
-                    id: timestamp + 1, // ensure unique
+                    id: timestamp + 1,
                     timestamp: new Date(),
                     sender: "bot",
                     name: "ResQ",
@@ -136,10 +126,8 @@ export default function CallPage() {
     };
 
     const handleEndCall = () => {
-        setConversationStep(0); // Reset conversation on end call
+        setConversationStep(0);
         setInCall(false);
-
-        // Stop any currently playing audio safely
         if (audioRef.current) {
             try {
                 audioRef.current.pause();
@@ -148,10 +136,8 @@ export default function CallPage() {
             }
             audioRef.current = null;
         }
-
         setMicOn(false);
         stopRecording();
-
         setMessages((prev) => [
             ...prev,
             {
@@ -166,13 +152,9 @@ export default function CallPage() {
 
     const handleSendText = () => {
         if (!userInput.trim()) return;
-
         abortSpeak();
-
         const newId = Date.now();
         const text = userInput.trim();
-
-        // Add user message
         setMessages((prev) => [
             ...prev,
             {
@@ -183,29 +165,37 @@ export default function CallPage() {
                 text,
             },
         ]);
-
         lastUserMessageIdRef.current = newId;
-        setUserInput(""); // clear input
-
-        // Trigger the hardcoded response flow
+        setUserInput("");
         sendToLLM(text);
     };
 
+    // --- START: FIX FOR INFINITE LOOP ---
+
+    // Define finalizeCurrentMessage with useCallback to prevent it from being recreated
+    // on every render unless its dependencies (messages, conversationStep) change.
     const finalizeCurrentMessage = useCallback(() => {
         if (lastUserMessageIdRef.current) {
             const currentMsg = messages.find(
                 (m) => m.id === lastUserMessageIdRef.current
             );
             if (!currentMsg) return;
-
             const finalText = currentMsg.text;
             lastUserMessageIdRef.current = null;
-
-            // Trigger the hardcoded response flow
             sendToLLM(finalText);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [messages, conversationStep]); // Added dependencies
+    }, [messages, conversationStep]);
+
+    // Create a ref to hold the latest version of the finalizeCurrentMessage callback.
+    const finalizeCallbackRef = useRef(finalizeCurrentMessage);
+
+    // This effect ensures the ref always has the most up-to-date version of the callback.
+    useEffect(() => {
+        finalizeCallbackRef.current = finalizeCurrentMessage;
+    }, [finalizeCurrentMessage]);
+
+    // --- END: FIX FOR INFINITE LOOP ---
 
     const speak = async (text: string, onDone?: () => void) => {
         try {
@@ -214,28 +204,22 @@ export default function CallPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text }),
             });
-
             const data = await res.json();
             if (data.audioContent) {
-                // Stop previous audio if any
                 if (audioRef.current) {
                     audioRef.current.pause();
                     audioRef.current = null;
                 }
-
                 const audio = new Audio("data:audio/mp3;base64," + data.audioContent);
                 audioRef.current = audio;
-
                 audio.onplay = () => {
-                    pauseMic(); // mute mic
+                    pauseMic();
                 };
-
                 audio.onended = () => {
                     resumeMic();
                     audioRef.current = null;
                     if (onDone) onDone();
                 };
-
                 await audio.play();
             }
         } catch (err) {
@@ -247,7 +231,7 @@ export default function CallPage() {
         if (audioRef.current) {
             try {
                 audioRef.current.pause();
-                audioRef.current.currentTime = 0; // reset
+                audioRef.current.currentTime = 0;
             } catch (err) {
                 console.warn("Abort speak error", err);
             }
@@ -258,27 +242,28 @@ export default function CallPage() {
     const pauseMic = () => {
         setMicOn(false);
         if (mediaStream) {
-            mediaStream.getTracks().forEach(track => track.enabled = false);
+            mediaStream.getTracks().forEach((track) => (track.enabled = false));
         }
     };
 
     const resumeMic = () => {
         setMicOn(true);
         if (mediaStream) {
-            mediaStream.getTracks().forEach(track => track.enabled = true);
+            mediaStream.getTracks().forEach((track) => (track.enabled = true));
         }
     };
 
+    // This is the main useEffect that now safely handles transcripts.
     useEffect(() => {
         if (transcript?.text) {
             if (transcript.message_type === "PartialTranscript") {
-                // Reset silence timer
                 if (silenceTimerRef.current) {
                     clearTimeout(silenceTimerRef.current);
                 }
                 silenceTimerRef.current = setTimeout(() => {
-                    finalizeCurrentMessage();
-                }, 2000); // 2 seconds of silence
+                    // Call the latest version of the function from the ref.
+                    finalizeCallbackRef.current();
+                }, 2000);
 
                 if (lastUserMessageIdRef.current) {
                     setMessages((prev) =>
@@ -304,9 +289,9 @@ export default function CallPage() {
                 }
             }
         }
-    }, [transcript, finalizeCurrentMessage]);
+        // By only depending on `transcript`, this effect no longer causes an infinite loop.
+    }, [transcript]);
 
-    // --- JSX remains the same from here ---
     return (
         <Box
             sx={{
@@ -322,15 +307,14 @@ export default function CallPage() {
             <AppBar
                 position="fixed"
                 sx={{
-                    backgroundColor: "rgba(0, 0, 0, 0.4)", // semi-transparent black
-                    backdropFilter: "blur(12px)",       // blur effect
-                    WebkitBackdropFilter: "blur(12px)",   // Safari support
-                    borderBottom: "1px solid rgba(255,255,255,0.1)", // subtle line
+                    backgroundColor: "rgba(0, 0, 0, 0.4)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    borderBottom: "1px solid rgba(255,255,255,0.1)",
                     boxShadow: "none",
                 }}
             >
-                <Toolbar sx={{ position: "relative", minHeight: 64 }}> {/* keeps AppBar height fixed */}
-                    {/* Left */}
+                <Toolbar sx={{ position: "relative", minHeight: 64 }}>
                     <Box
                         sx={{
                             cursor: "pointer",
@@ -347,13 +331,11 @@ export default function CallPage() {
                             height={80}
                             style={{
                                 height: 80,
-                                transform: "scale(1.5)", // enlarge without changing AppBar height
+                                transform: "scale(1.5)",
                                 transformOrigin: "center",
                             }}
                         />
                     </Box>
-
-                    {/* Middle - centered nav */}
                     <Box
                         sx={{
                             display: { xs: "none", md: "flex" },
@@ -366,8 +348,6 @@ export default function CallPage() {
                         <Button color="inherit" onClick={goToHome}>Back to Home</Button>
                         <Button color="inherit" onClick={goToDashboard}>Dashboard</Button>
                     </Box>
-
-                    {/* Right */}
                     <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: 2 }}>
                         <Button variant="outlined" sx={{ borderRadius: 4 }}>Request Demo</Button>
                     </Box>
@@ -392,7 +372,6 @@ export default function CallPage() {
                 >
                     {inCall ? "Click end to terminate the call" : "Press call to connect"}
                 </Typography>
-
                 {inCall ? (
                     <>
                         <Button
@@ -407,13 +386,9 @@ export default function CallPage() {
                                 fontWeight: "bold",
                                 mb: 1,
                                 boxShadow: 3,
-                                "&:hover": {
-                                    bgcolor: "grey.700",
-                                },
+                                "&:hover": { bgcolor: "grey.700" },
                                 transition: "all 0.2s",
-                                ":active": {
-                                    transform: "scale(0.95)",
-                                },
+                                ":active": { transform: "scale(0.95)" },
                             }}
                         >
                             End
@@ -421,14 +396,7 @@ export default function CallPage() {
                         <Typography color={isMicOn ? "white" : "gray"}>
                             {isMicOn ? "You can talk now " : "You can talk after the mic turned green"}
                         </Typography>
-                        <Box
-                            sx={{
-                                display: "flex",
-                                my: 2,
-                                width: "100%",
-                                maxWidth: 600,
-                            }}
-                        >
+                        <Box sx={{ display: "flex", my: 2, width: "100%", maxWidth: 600 }}>
                             <input
                                 type="text"
                                 value={userInput}
@@ -483,7 +451,6 @@ export default function CallPage() {
                         Call
                     </Button>
                 )}
-
                 {messages.length > 0 && <Chatbox messages={messages} />}
             </Box>
         </Box>
