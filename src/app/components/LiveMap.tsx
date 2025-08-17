@@ -1,5 +1,6 @@
-// components/LiveMap.tsx
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -13,23 +14,78 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow.src ?? markerShadow,
 });
 
-const positions = [
-    { lat: 51.505, lng: -0.09, label: "Emergency Call" },
-    { lat: 51.515, lng: -0.1, label: "Emergency Call" },
-];
-
 export default function LiveMap() {
+    const [center, setCenter] = useState<[number, number] | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setCenter([pos.coords.latitude, pos.coords.longitude]);
+                },
+                () => {
+                    setError("Location access denied.");
+                }
+            );
+        } else {
+            setError("Geolocation not supported by this browser.");
+        }
+    }, []);
+
+    if (error) {
+        return (
+            <div
+                style={{
+                    height: "100%",
+                    width: "100%",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.05)",
+                    color: "white",
+                    fontSize: "1.2rem",
+                }}
+            >
+                {error}
+            </div>
+        );
+    }
+
+    if (!center) {
+        return (
+            <div
+                style={{
+                    height: "100%",
+                    width: "100%",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.05)",
+                    color: "white",
+                    fontSize: "1.2rem",
+                }}
+            >
+                Locating...
+            </div>
+        );
+    }
+
     return (
-        <MapContainer center={[51.505, -0.09]} zoom={13} style={{ height: "100%", width: "100%", borderRadius: 12 }}>
+        <MapContainer
+            center={center}
+            zoom={13}
+            style={{ height: "100%", width: "100%", borderRadius: 12 }}
+        >
             <TileLayer
                 attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {positions.map((pos, idx) => (
-                <Marker position={[pos.lat, pos.lng]} key={idx}>
-                    <Popup>{pos.label}</Popup>
-                </Marker>
-            ))}
+            <Marker position={center}>
+                <Popup>You are here</Popup>
+            </Marker>
         </MapContainer>
     );
 }

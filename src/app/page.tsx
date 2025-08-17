@@ -3,6 +3,7 @@
 import { AppBar, Toolbar, Typography, Button, Container, Card, CardContent, Box, Grid, Divider } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import { useRouter } from "next/navigation";
+import DashboardPreview from "./components/DashboardPreview";
 
 export default function HomePage() {
   const router = useRouter();
@@ -22,6 +23,15 @@ export default function HomePage() {
     }
   };
 
+  const frostedCardStyle = {
+    p: 2,
+    borderRadius: 3,
+    bgcolor: "rgba(255,255,255,0.01)",
+    backdropFilter: "blur(15px)",
+    WebkitBackdropFilter: "blur(15px)",
+    boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
+  };
+
   return (
     <Box sx={{ bgcolor: "black", color: "white", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Navbar */}
@@ -35,17 +45,26 @@ export default function HomePage() {
           boxShadow: "none",
         }}
       >
-        <Toolbar sx={{ position: "relative" }}>
+        <Toolbar sx={{ position: "relative", minHeight: 64 }}> {/* keeps AppBar height fixed */}
           {/* Left */}
-          <Box>
-            <Typography
-              sx={{ cursor: "pointer" }}
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              variant="h6"
-              fontWeight="bold"
-            >
-              ResQ
-            </Typography>
+          <Box
+            sx={{
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              height: "100%",
+            }}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
+            <img
+              src="/logo_ResQ.png"
+              alt="ResQ Logo"
+              style={{
+                height: 80,
+                transform: "scale(1.5)", // enlarge without changing AppBar height
+                transformOrigin: "center",
+              }}
+            />
           </Box>
 
           {/* Middle - centered nav */}
@@ -60,7 +79,7 @@ export default function HomePage() {
           >
             <Button color="inherit" onClick={() => scrollToSection("how-it-works")}>How It Works</Button>
             <Button color="inherit" onClick={() => scrollToSection("partners")}>Partners</Button>
-            <Button color="inherit" onClick={() => scrollToSection("dashboard")}>Dashboard</Button>
+            <Button color="inherit" onClick={goToDashboard}>Dashboard</Button>
             <Button color="inherit" onClick={() => scrollToSection("about")}>About</Button>
           </Box>
 
@@ -368,7 +387,7 @@ export default function HomePage() {
       <Container sx={{ py: 2 }}>
         <Container
           sx={{
-            py: 8,
+            py: 4,
             px: 4,
             mb: 4,
             borderRadius: 4,
@@ -389,22 +408,7 @@ export default function HomePage() {
             </Typography>
           </Box>
 
-          {/* Right box for the button */}
-          <Box
-            sx={{
-              width: { xs: "100%", sm: 200 }, // responsive width
-              display: "flex",
-              justifyContent: "center",
-              mt: { xs: 2, sm: 0 }, // add margin-top on mobile
-            }}
-          >
-            <Button
-              onClick={goToDashboard}
-              variant="outlined"
-              sx={{ color: "white", borderRadius: 4, borderColor: "gray", whiteSpace: "nowrap" }}>
-              View Dashboard
-            </Button>
-          </Box>
+          <DashboardPreview goToDashboard={goToDashboard} />
         </Container>
       </Container>
 
@@ -412,7 +416,7 @@ export default function HomePage() {
       <Container id="about" sx={{ py: 2 }}>
         <Container
           sx={{
-            py: 8,
+            py: 4,
             px: 4,
             mb: 4,
             borderRadius: 4,

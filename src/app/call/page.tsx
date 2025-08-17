@@ -258,17 +258,26 @@ export default function CallPage() {
                     boxShadow: "none",
                 }}
             >
-                <Toolbar sx={{ position: "relative" }}>
+                <Toolbar sx={{ position: "relative", minHeight: 64 }}> {/* keeps AppBar height fixed */}
                     {/* Left */}
-                    <Box>
-                        <Typography
-                            sx={{ cursor: "pointer" }}
-                            onClick={goToHome}
-                            variant="h6"
-                            fontWeight="bold"
-                        >
-                            ResQ
-                        </Typography>
+                    <Box
+                        sx={{
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                        }}
+                        onClick={goToHome}
+                    >
+                        <img
+                            src="/logo_ResQ.png"
+                            alt="ResQ Logo"
+                            style={{
+                                height: 80,
+                                transform: "scale(1.5)", // enlarge without changing AppBar height
+                                transformOrigin: "center",
+                            }}
+                        />
                     </Box>
 
                     {/* Middle - centered nav */}
@@ -281,7 +290,7 @@ export default function CallPage() {
                             transform: "translateX(-50%)",
                         }}
                     >
-                        <Button color="inherit" onClick={goToHome}>Home</Button>
+                        <Button color="inherit" onClick={goToHome}>Back to Home</Button>
                         <Button color="inherit" onClick={goToDashboard}>Dashboard</Button>
                     </Box>
 
