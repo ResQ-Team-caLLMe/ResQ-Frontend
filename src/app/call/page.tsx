@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
-// import { AudioVisualizer } from "./components/AudioVisualizer";
 import { Chatbox, Message } from "../components/ChatBox";
 import { Box, Typography, Button } from "@mui/material";
 
@@ -12,6 +11,7 @@ export default function Home() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isMicOn, setMicOn] = useState(false);
     const [inCall, setInCall] = useState(false);
+    const [userInput, setUserInput] = useState("");
 
     const lastUserMessageIdRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -19,16 +19,26 @@ export default function Home() {
 
     const handleStartCall = () => {
         setInCall(true);
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now(),
-                timestamp: new Date(),
-                sender: "bot",
-                name: "ResQ",
-                text: "Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.",
-            },
-        ]);
+        setMessages((prev) => {
+            const timestamp = Date.now();
+            return [
+                ...prev,
+                {
+                    id: timestamp,
+                    timestamp: new Date(),
+                    name: "system",
+                    sender: "system",
+                    text: "Call started",
+                },
+                {
+                    id: timestamp + 1, // ensure unique
+                    timestamp: new Date(),
+                    sender: "bot",
+                    name: "ResQ",
+                    text: "Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.",
+                },
+            ];
+        });
         speak("Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.", () => {
             startRecording();
         });
@@ -56,6 +66,43 @@ export default function Home() {
                 text: "Call ended",
             },
         ]);
+    };
+
+    const handleSendText = () => {
+        if (!userInput.trim()) return;
+
+        const newId = Date.now();
+        const text = userInput.trim();
+
+        // Add user message
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: newId,
+                timestamp: new Date(),
+                sender: "user",
+                name: "You",
+                text,
+            },
+        ]);
+
+        lastUserMessageIdRef.current = newId;
+        setUserInput(""); // clear input
+
+        // Bot responds
+        const botReply = `I heard you say: "${text}". How can I assist further?`;
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: Date.now() + 1,
+                timestamp: new Date(),
+                sender: "bot",
+                name: "ResQ",
+                text: botReply,
+            },
+        ]);
+
+        speak(botReply);
     };
 
     const speak = async (text: string, onDone?: () => void) => {
@@ -204,9 +251,9 @@ export default function Home() {
                     ResQ
                 </Typography>
                 <Typography
-                    variant="h5"
+                    variant="h6"
                     component="h2"
-                    sx={{ fontWeight: 300, mb: 3, textAlign: "center" }}
+                    sx={{ fontWeight: 300, mb: 2, textAlign: "center" }}
                 >
                     AI-Powered Emergency Call Center
                 </Typography>
@@ -218,8 +265,8 @@ export default function Home() {
                             variant="contained"
                             sx={{
                                 bgcolor: isMicOn ? "success.main" : "grey.500",
-                                width: 112,
-                                height: 112,
+                                width: 100,
+                                height: 100,
                                 borderRadius: "50%",
                                 fontSize: "1rem",
                                 fontWeight: "bold",
@@ -239,6 +286,40 @@ export default function Home() {
                         <Typography>
                             {isMicOn ? "You can talk now " : "You can talk after the mic turned green"}
                         </Typography>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                my: 2,
+                                width: "100%",
+                                maxWidth: 600,
+                            }}
+                        >
+                            <input
+                                type="text"
+                                value={userInput}
+                                onChange={(e) => setUserInput(e.target.value)}
+                                placeholder="Type your message here..."
+                                style={{
+                                    flex: 1,
+                                    padding: "8px 12px",
+                                    fontSize: "1rem",
+                                    borderRadius: 4,
+                                    border: "1px solid #ccc",
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSendText();
+                                }}
+                                disabled={!inCall}
+                            />
+                            <Button
+                                onClick={handleSendText}
+                                variant="contained"
+                                sx={{ ml: 1, bgColor: "blue-500" }}
+                                disabled={!inCall}
+                            >
+                                Send
+                            </Button>
+                        </Box>
                     </>
                 ) : (
                     <Button
@@ -247,8 +328,9 @@ export default function Home() {
                         sx={{
                             bgcolor: "error.main",
                             color: "white",
-                            width: 112,
-                            height: 112,
+                            width: 100,
+                            height: 100,
+                            mb: 2,
                             borderRadius: "50%",
                             fontSize: "1rem",
                             fontWeight: "bold",

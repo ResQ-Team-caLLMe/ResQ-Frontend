@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { User, Bot } from "lucide-react";
+import { Box, Typography, Avatar, Card, Stack } from "@mui/material";
 
-// Define and export the structure for a single message
 export interface Message {
     id: number;
     sender: "user" | "bot" | "system";
@@ -19,7 +19,6 @@ interface ChatboxProps {
 export const Chatbox = ({ messages }: ChatboxProps) => {
     const chatboxRef = useRef<HTMLDivElement>(null);
 
-    // Effect to auto-scroll the chatbox
     useEffect(() => {
         if (chatboxRef.current) {
             chatboxRef.current.scrollTo({
@@ -30,95 +29,107 @@ export const Chatbox = ({ messages }: ChatboxProps) => {
     }, [messages]);
 
     return (
-        <>
-            {/* Global styles for a custom scrollbar */}
-            <style jsx global>{`
-                /* For Firefox */
-                .custom-scrollbar {
-                    scrollbar-width: thin;
-                    scrollbar-color: rgba(156, 163, 175, 0.7) transparent;
-                }
+        <Box
+            ref={chatboxRef}
+            sx={{
+                width: "100%",
+                height: 300,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                p: 2,
+                borderRadius: 3,
+                background: "rgba(255, 255, 255, 0.1)", // main frosted background
+                backdropFilter: "blur(15px)",
+                WebkitBackdropFilter: "blur(15px)",
+                boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
+                "&::-webkit-scrollbar": { width: 8 },
+                "&::-webkit-scrollbar-track": { background: "transparent" },
+                "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20 },
+                "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "rgba(255,255,255,0.3)" },
+            }}
+        >
+            <Box sx={{ flexGrow: 1 }} /> {/* spacer to push messages to bottom */}
+            {messages.map((msg) => {
+                const isUser = msg.sender === "user";
+                const isBot = msg.sender === "bot";
 
-                /* For Chrome, Safari, and other WebKit browsers */
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 8px;
-                }
-
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-
-                /* Make the thumb transparent by default */
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: transparent;
-                    border-radius: 20px;
-                    border: 3px solid transparent;
-                }
-
-                /* On hover, make the thumb visible */
-                .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-                    background-color: rgba(156, 163, 175, 0.5);
-                }
-
-                /* Optional: Darken thumb when dragging */
-                .custom-scrollbar::-webkit-scrollbar-thumb:active {
-                    background-color: rgba(156, 163, 175, 0.7);
-                }
-            `}</style>
-
-            <div
-                ref={chatboxRef}
-                className="custom-scrollbar bg-gray-900 bg-opacity-50 backdrop-blur-sm rounded-lg shadow-lg my-6 p-4 w-full h-80 overflow-y-auto flex flex-col gap-4"
-            >
-                {/* Spacer to push content to the bottom */}
-                <div className="flex-grow" />
-                {messages.map((msg) => (
-                    <div
+                return (
+                    <Stack
                         key={msg.id}
-                        // CHANGE 1: Use items-end to align avatar to the bottom of the bubble
-                        className={`flex items-end gap-3 max-w-[85%] ${msg.sender === "user" ? "self-end flex-row-reverse" : "self-start"
-                            }`}
+                        direction="row"
+                        spacing={1.5}
+                        alignItems="flex-end"
+                        justifyContent={isUser ? "flex-end" : "flex-start"}
+                        sx={{ width: "100%" }}
                     >
-                        {/* Icon and Name Column (Bot, System, User) */}
-                        {msg.sender !== "system" && (
-                            <div className="flex flex-col items-center flex-shrink-0 w-16 text-center">
-                                <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${msg.sender === "bot" ? "bg-red-500" : "bg-blue-500"
-                                        }`}
+                        {/* Avatar for bot/user */}
+                        {msg.sender !== "system" && !isUser && (
+                            <Stack alignItems="center" spacing={0.5} sx={{ width: 56, flexShrink: 0 }}>
+                                <Avatar
+                                    sx={{ width: 32, height: 32, bgcolor: isBot ? "error.main" : "primary.main" }}
                                 >
-                                    {msg.sender === "bot" ? <Bot size={20} /> : <User size={20} />}
-                                </div>
-                                {/* CHANGE 2: Allow name to wrap */}
-                                <p className="text-xs text-gray-300 break-words">{msg.name}</p>
-                            </div>
+                                    {isBot ? <Bot size={20} /> : <User size={20} />}
+                                </Avatar>
+                                <Typography variant="caption" sx={{ color: "gray.300", textAlign: "center" }}>
+                                    {msg.name}
+                                </Typography>
+                            </Stack>
                         )}
 
-                        {/* Message Bubble, Text, and Timestamp */}
-                        <div className={`flex flex-col w-full ${msg.sender === 'system' ? 'items-center' : ''}`}>
-                            <div
-                                className={`rounded-lg px-3 py-2 text-white shadow ${msg.sender === "user"
-                                    ? "bg-blue-600 rounded-br-none self-end" // Added self-end to align bubble
-                                    : msg.sender === "bot"
-                                        ? "bg-gray-700 rounded-bl-none self-start" // Added self-start to align bubble
-                                        : "bg-transparent text-yellow-300 italic text-center w-full p-0"
-                                    }`}
+                        {/* Message bubble */}
+                        <Box sx={{ display: "flex", flexDirection: "column", maxWidth: "85%" }}>
+                            <Card
+                                sx={{
+                                    px: 2,
+                                    py: 1.5,
+                                    bgcolor: isUser ? "primary.main" : isBot ? "grey.800" : "transparent",
+                                    color: msg.sender === "system" ? "yellow" : "white",
+                                    borderRadius: 2,
+                                    borderTopRightRadius: isUser ? 0 : 8,
+                                    borderBottomLeftRadius: isBot ? 0 : 8,
+                                    textAlign: msg.sender === "system" ? "center" : "left",
+                                    fontStyle: msg.sender === "system" ? "italic" : "normal",
+                                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                                }}
                             >
-                                <p className="text-sm" style={{ wordBreak: 'break-word' }}>{msg.text}</p>
-                            </div>
+                                <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                                    {msg.text}
+                                </Typography>
+                            </Card>
+
                             {msg.sender !== "system" && (
-                                // CHANGE: Conditionally align the timestamp
-                                <p className={`mt-1 text-xs text-gray-400 ${msg.sender === "user" ? "self-end" : "self-start"
-                                    }`}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        mt: 0.5,
+                                        color: "gray.400",
+                                        alignSelf: isUser ? "flex-end" : "flex-start",
+                                    }}
+                                >
                                     {msg.timestamp.toLocaleTimeString([], {
                                         hour: "2-digit",
                                         minute: "2-digit",
                                     })}
-                                </p>
+                                </Typography>
                             )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </>
+                        </Box>
+
+                        {/* Avatar on right for user */}
+                        {isUser && (
+                            <Stack alignItems="center" spacing={0.5} sx={{ width: 56, flexShrink: 0 }}>
+                                <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                                    <User size={20} />
+                                </Avatar>
+                                <Typography variant="caption" sx={{ color: "gray.300", textAlign: "center" }}>
+                                    {msg.name}
+                                </Typography>
+                            </Stack>
+                        )}
+                    </Stack>
+                );
+            })}
+        </Box>
     );
 };
