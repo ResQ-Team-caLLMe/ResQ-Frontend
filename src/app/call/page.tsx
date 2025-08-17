@@ -170,10 +170,6 @@ export default function CallPage() {
         sendToLLM(text);
     };
 
-    // --- START: FIX FOR INFINITE LOOP ---
-
-    // Define finalizeCurrentMessage with useCallback to prevent it from being recreated
-    // on every render unless its dependencies (messages, conversationStep) change.
     const finalizeCurrentMessage = useCallback(() => {
         if (lastUserMessageIdRef.current) {
             const currentMsg = messages.find(
@@ -187,15 +183,11 @@ export default function CallPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [messages, conversationStep]);
 
-    // Create a ref to hold the latest version of the finalizeCurrentMessage callback.
     const finalizeCallbackRef = useRef(finalizeCurrentMessage);
 
-    // This effect ensures the ref always has the most up-to-date version of the callback.
     useEffect(() => {
         finalizeCallbackRef.current = finalizeCurrentMessage;
     }, [finalizeCurrentMessage]);
-
-    // --- END: FIX FOR INFINITE LOOP ---
 
     const speak = async (text: string, onDone?: () => void) => {
         try {
@@ -253,7 +245,20 @@ export default function CallPage() {
         }
     };
 
-    // This is the main useEffect that now safely handles transcripts.
+    // --- START: NEW CHANGE ---
+    // This effect handles cleanup when the component unmounts (e.g., page change).
+    useEffect(() => {
+        return () => {
+            // Stop any currently playing audio
+            abortSpeak();
+            // Ensure the microphone and recording are stopped
+            stopRecording();
+        };
+        // The empty dependency array ensures this runs only on mount and unmount.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    // --- END: NEW CHANGE ---
+
     useEffect(() => {
         if (transcript?.text) {
             if (transcript.message_type === "PartialTranscript") {
@@ -261,7 +266,6 @@ export default function CallPage() {
                     clearTimeout(silenceTimerRef.current);
                 }
                 silenceTimerRef.current = setTimeout(() => {
-                    // Call the latest version of the function from the ref.
                     finalizeCallbackRef.current();
                 }, 2000);
 
@@ -289,7 +293,6 @@ export default function CallPage() {
                 }
             }
         }
-        // By only depending on `transcript`, this effect no longer causes an infinite loop.
     }, [transcript]);
 
     return (

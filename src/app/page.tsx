@@ -139,7 +139,7 @@ export default function HomePage() {
         </Typography>
 
         <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-          <Button
+          {/* <Button
             variant="contained"
             color="error"
             size="large"
@@ -148,7 +148,7 @@ export default function HomePage() {
             onClick={goToCall}
           >
             CALL
-          </Button>
+          </Button> */}
           <Button
             variant="outlined"
             size="large"
@@ -157,6 +157,38 @@ export default function HomePage() {
           >
             See How It Works
           </Button>
+        </Box>
+      </Container>
+
+      {/* --- YOUTUBE DEMO VIDEO SECTION --- */}
+      <Container sx={{ my: 2 }}>
+        {/* Add this wrapper Box to control the size and centering */}
+        <Box sx={{ maxWidth: '720px', mx: 'auto' }}>
+          <Box
+            sx={{
+              position: "relative",
+              paddingTop: "56.25%", // 16:9 Aspect Ratio
+              height: 0,
+              overflow: "hidden",
+              borderRadius: 2,
+              boxShadow: 6,
+            }}
+          >
+            <iframe
+              src="https://www.youtube.com/embed/nxgovBGvnhU"
+              title="ResQ Demo Video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+              }}
+            />
+          </Box>
         </Box>
       </Container>
 
