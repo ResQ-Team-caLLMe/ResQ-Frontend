@@ -1,186 +1,406 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useAudioRecorder } from "./hooks/useAudioRecorder";
-// import { AudioVisualizer } from "./components/AudioVisualizer";
-import { Chatbox, Message } from "./components/ChatBox";
+import { AppBar, Toolbar, Typography, Button, Container, Card, CardContent, Box, Grid, Divider } from "@mui/material";
+import PhoneIcon from "@mui/icons-material/Phone";
 
-export default function Home() {
-  const { startRecording, stopRecording, mediaStream, transcript } =
-    useAudioRecorder();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isMicOn, setMicOn] = useState(false);
-  const [inCall, setInCall] = useState(false);
-
-  const lastUserMessageIdRef = useRef<number | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleStartCall = () => {
-    setInCall(true);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        timestamp: new Date(),
-        sender: "bot",
-        name: "ResQ",
-        text: "Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.",
-      },
-    ]);
-    speak("Hello! You've reached the ResQ AI assistant. Please state the nature of your emergency.", () => {
-      startRecording();
-    });
-  };
-
-  const handleEndCall = () => {
-    setInCall(false);
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
-    setMicOn(false);
-    stopRecording();
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        timestamp: new Date(),
-        name: "system",
-        sender: "system",
-        text: "Call ended",
-      },
-    ]);
-  };
-
-  const speak = (text: string, onDone?: () => void) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-US";
-      utterance.rate = 1.5;
-      utterance.pitch = 1;
-
-      utterance.onstart = () => {
-        pauseMic(); // mute mic, but keep WebSocket alive
-      };
-
-      utterance.onend = () => {
-        resumeMic(); // unmute mic
-        if (onDone) onDone();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  // Handles marking a transcript as "final" after silence
-  const finalizeCurrentMessage = () => {
-    if (lastUserMessageIdRef.current) {
-      const currentMsg = messages.find(
-        (m) => m.id === lastUserMessageIdRef.current
-      );
-      if (!currentMsg) return;
-
-      const finalText = currentMsg.text;
-
-      // Add bot reply
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          timestamp: new Date(),
-          sender: "bot",
-          name: "ResQ",
-          text: `I heard you say: "${finalText}". How can I assist further?`,
-        },
-      ]);
-
-      speak(`I heard you say: "${finalText}". How can I assist further?`);
-
-      // Reset for the next utterance
-      lastUserMessageIdRef.current = null;
-    }
-  };
-
-  const pauseMic = () => {
-    setMicOn(false);
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.enabled = false);
-    }
-  };
-
-  const resumeMic = () => {
-    setMicOn(true);
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.enabled = true);
-    }
-  };
-
-  useEffect(() => {
-    if (transcript?.text) {
-      if (transcript.message_type === "PartialTranscript") {
-        // Reset silence timer
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-        }
-        silenceTimerRef.current = setTimeout(() => {
-          finalizeCurrentMessage();
-        }, 2000); // 2 seconds of silence
-
-        if (lastUserMessageIdRef.current) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === lastUserMessageIdRef.current
-                ? { ...msg, text: transcript.text }
-                : msg
-            )
-          );
-        } else {
-          const newId = Date.now();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: newId,
-              timestamp: new Date(),
-              sender: "user",
-              name: "You",
-              text: transcript.text,
-            },
-          ]);
-          lastUserMessageIdRef.current = newId;
-        }
-      }
-    }
-  }, [transcript]);
-
+export default function HomePage() {
   return (
-    <div className="text-white min-h-screen flex flex-col justify-center items-center p-4 sm:p-8 font-sans">
-      <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-2 text-center">ResQ</h1>
-        <h2 className="text-xl md:text-2xl font-light mb-6 text-center">
-          AI-Powered Emergency Call Center
-        </h2>
+    <Box sx={{ bgcolor: "black", color: "white", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Navbar */}
+      <AppBar
+        position="fixed"
+        sx={{
+          backgroundColor: "rgba(0, 0, 0, 0.4)", // semi-transparent black
+          backdropFilter: "blur(12px)",          // blur effect
+          WebkitBackdropFilter: "blur(12px)",    // Safari support
+          borderBottom: "1px solid rgba(255,255,255,0.1)", // subtle line
+          boxShadow: "none",
+        }}
+      >
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+          {/* Left */}
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" fontWeight="bold">
+              ResQ
+            </Typography>
+          </Box>
 
-        {inCall ? (
-          // <div className="w-full flex flex-col items-center">
-          //   {/* {mediaStream && <AudioVisualizer mediaStream={mediaStream} />} */}
-          // </div>
+          {/* Middle - centered nav */}
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 4, flex: 1, justifyContent: "center" }}>
+            <Button color="inherit">How It Works</Button>
+            <Button color="inherit">Partners</Button>
+            <Button color="inherit">Dashboard</Button>
+            <Button color="inherit">About</Button>
+          </Box>
 
-          <button
-            onClick={handleEndCall}
-            className={`flex items-center justify-center ${isMicOn ? "bg-green-600" : "bg-gray-500"} text-white w-28 h-28 rounded-full text-lg font-bold shadow-lg hover:bg-gray-700 cursor-pointer active:scale-95 transition-all duration-200`}
+          {/* Right */}
+          <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Button variant="outlined" sx={{ borderRadius: 4 }}>Request Demo</Button>
+            <Button variant="contained" color="error" sx={{ borderRadius: 4 }} startIcon={<PhoneIcon />}>CALL</Button>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Hero Section */}
+      <Container sx={{ textAlign: "center", pt: 12 }}>
+        {/* Status button */}
+        <Button
+          variant="outlined"
+          size="small"
+          sx={{
+            borderRadius: 20,
+            borderColor: "#34D399",
+            color: "white",
+            px: 2.5,
+            py: 0.5,
+            fontSize: "0.8rem",
+            textTransform: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 1,
+            mb: 2
+          }}
+          startIcon={
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: "#34D399",
+                animation: "pulse 1.5s infinite",
+              }}
+            />
+          }
+        >
+          LIVE—READY FOR JAKARTA 112
+        </Button>
+
+        <Typography
+          variant="h2"
+          fontWeight="bold"
+          sx={{
+            background: "linear-gradient(to right, red, white, blue)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            mb: 1, // set bottom margin explicitly
+          }}
+        >
+          Every Second Counts.
+        </Typography>
+
+        <Typography
+          variant="h3"
+          fontWeight="bold"
+          sx={{ mb: 2 }} // same bottom margin
+        >
+          AI-Powered Emergency Response.
+        </Typography>
+
+        <Typography
+          variant="body1"
+          sx={{ color: "#FFFFFF", maxWidth: 650, mx: "auto", mb: 4 }} // same bottom margin
+        >
+          ResQ connects citizens to{" "}
+          <Box component="span" sx={{ fontWeight: "bold" }}>
+            firefighters, police, and medical teams
+          </Box>
+          . It filters prank calls, auto-classifies emergencies, tracks location, and dispatches the nearest responders.
+        </Typography>
+
+        <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+          <Button variant="contained" color="error" size="large" startIcon={<PhoneIcon />} sx={{ borderRadius: 4 }}>CALL</Button>
+          <Button variant="outlined" size="large" sx={{ color: "white", borderColor: "gray", borderRadius: 4 }}>See How It Works</Button>
+        </Box>
+      </Container>
+
+      {/* Stats */}
+      <Container sx={{ pt: 8, pb: 2 }}>
+        <Grid container spacing={4}>
+          {[
+            { label: "< 2s", desc: "AI triage latency" },
+            { label: "> 70%", desc: "Prank calls filtered" },
+            { label: "> 40%", desc: "Faster dispatch" }
+          ].map((stat, i) => (
+            <Grid size={{ xs: 12, md: 4 }} key={i}>
+              <Card
+                sx={{
+                  py: 2,
+                  position: "relative",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  bgcolor: "rgba(255, 255, 255, 0.01)",
+                  border: "none",
+                  backdropFilter: "blur(15px)",
+                  WebkitBackdropFilter: "blur(15px)",
+                  boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: `
+                      radial-gradient(circle at top left, rgba(255,255,255,0.25), transparent 60%),
+                      radial-gradient(circle at bottom right, rgba(255,255,255,0.15), transparent 40%)
+                    `,
+                    pointerEvents: "none",
+                  },
+                  "&:hover": {
+                    transform: "scale(1.03)",
+                    transition: "transform 0.3s ease",
+                  },
+                }}
+              >
+                <CardContent sx={{ textAlign: "center", position: "relative", zIndex: 1 }}>
+                  <Typography
+                    variant="h3"
+                    fontWeight="bold"
+                    sx={{ color: "#FFFFFF", mb: 1 }}
+                  >
+                    {stat.label}
+                  </Typography>
+                  <Typography sx={{ color: "#ffffffff" }}>
+                    {stat.desc}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      <Divider
+        sx={{
+          width: "90%",          // 80% of the container/screen
+          mx: "auto",            // center horizontally
+          borderColor: "rgba(255,255,255,0.2)",
+          my: 6,                 // vertical spacing
+        }}
+      />
+
+      {/* Partners */}
+      <Container sx={{ py: 2 }}>
+        <Typography variant="h4" fontWeight="bold" textAlign="center" mb={4}>
+          Partnered with First Responder
+        </Typography>
+
+        <Grid container spacing={4}>
+          {[
+            { title: "Firefighters", icon: "🔥" },
+            { title: "Police", icon: "🚓" },
+            { title: "Hospitals", icon: "🏥" },
+            { title: "Ambulance", icon: "🚑" },
+          ].map((item, i) => (
+            <Grid size={{ xs: 12, md: 3 }} key={i}>
+              <Card
+                sx={{
+                  position: "relative",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  border: "none",
+                  backdropFilter: "blur(15px)",
+                  WebkitBackdropFilter: "blur(15px)",
+                  boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: `
+                radial-gradient(circle at bottom right, rgba(255,255,255,0.15), transparent 60%)
+              `,
+                    pointerEvents: "none",
+                  },
+                }}
+              >
+                <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, position: "relative", zIndex: 1 }}>
+                  <Box sx={{ fontSize: 32 }}>{item.icon}</Box>
+                  <Typography variant={"h6"} color="white">{item.title}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      <Divider
+        sx={{
+          width: "90%",          // 80% of the container/screen
+          mx: "auto",            // center horizontally
+          borderColor: "rgba(255,255,255,0.2)",
+          my: 6,                 // vertical spacing
+        }}
+      />
+
+      {/* How It Works */}
+      <Container sx={{ py: 2 }}>
+        <Typography variant="h4" fontWeight="bold" textAlign="center" mb={2}>
+          How It Works
+        </Typography>
+        <Typography variant="body1" textAlign="center" mb={4}>
+          From call to dispatch in seconds.
+        </Typography>
+
+        <Grid container spacing={4}>
+          {[
+            { title: "AI Voice Assistant", desc: "Answers and transcribes in Bahasa & English, detects intent, and collects key details.", icon: "🗣️" },
+            { title: "Instant Classification", desc: "Medical, fire, or police — plus prank-risk scoring with human review for edge cases.", icon: "⚡" },
+            { title: "Smart Dispatch", desc: "Routes to nearest agency with live location; operators can override anytime.", icon: "📍" },
+          ].map((item, i) => (
+            <Grid size={{ xs: 12, md: 4 }} key={i}>
+              <Card
+                sx={{
+                  position: "relative",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  border: "none",
+                  backdropFilter: "blur(15px)",
+                  WebkitBackdropFilter: "blur(15px)",
+                  boxShadow: "0 4px 30px rgba(0,0,0,0.1)",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: `
+                radial-gradient(circle at top, rgba(255,255,255,0.15), transparent 60%)
+              `,
+                    pointerEvents: "none",
+                  },
+                }}
+              >
+                <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 2, position: "relative", zIndex: 1 }}>
+                  <Box sx={{ fontSize: 36 }}>{item.icon}</Box>
+                  <Typography variant="h6" fontWeight="bold" color="white">{item.title}</Typography>
+                  <Typography sx={{ color: "#9ca3af" }}>{item.desc}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      <Divider
+        sx={{
+          width: "90%",          // 80% of the container/screen
+          mx: "auto",            // center horizontally
+          borderColor: "rgba(255,255,255,0.2)",
+          my: 6,                 // vertical spacing
+        }}
+      />
+
+      {/* Dashboard */}
+      <Container sx={{ py: 2 }}>
+        <Container sx={{ py: 8, mb: 4, borderRadius: 4, background: "linear-gradient(to right, rgba(127,29,29,0.2), rgba(29,78,216,0.2))" }}>
+          <Typography variant="h3" fontWeight="bold" gutterBottom>
+            Operational Dashboard
+          </Typography>
+          <Typography sx={{ color: "#d1d5db", maxWidth: 600 }}>
+            Real-time calls, map view, prank score, and dispatch status — designed for operators and supervisors.
+          </Typography>
+          {/* <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
+            <Button variant="outlined" sx={{ borderRadius: 4 }}>Request Agency Demo</Button>
+            <Button variant="contained" color="error" sx={{ borderRadius: 4 }} startIcon={<PhoneIcon />}>CALL</Button>
+          </Box> */}
+        </Container>
+      </Container>
+
+      {/* About */}
+      <Container sx={{ py: 2 }}>
+        <Container
+          sx={{
+            py: 8,
+            px: 4,
+            mb: 4,
+            borderRadius: 4,
+            background: "linear-gradient(to right, rgba(127,29,29,0.2), rgba(29,78,216,0.2))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Box sx={{ maxWidth: 600 }}>
+            <Typography variant="h3" fontWeight="bold" gutterBottom>
+              Be Part of a Safer City
+            </Typography>
+            <Typography sx={{ color: "#d1d5db" }}>
+              Integrate ResQ with your hotline, train operators in days, and cut dispatch delays immediately.
+            </Typography>
+          </Box>
+
+          {/* Right box for the button */}
+          <Box
+            sx={{
+              width: { xs: "100%", sm: 200 }, // responsive width
+              display: "flex",
+              justifyContent: "center",
+              mt: { xs: 2, sm: 0 }, // add margin-top on mobile
+            }}
           >
-            End
-          </button>
-        ) : (
-          <button
-            onClick={handleStartCall}
-            className="flex items-center justify-center bg-red-700 text-white w-28 h-28 rounded-full text-lg font-bold shadow-lg hover:bg-gray-200 hover:text-red-700 cursor-pointer active:scale-95 transition-all duration-200"
-          >
-            Call
-          </button>
-        )}
+            <Button variant="outlined" sx={{ color: "white", borderRadius: 4, borderColor: "gray", whiteSpace: "nowrap" }}>
+              Talk to our team
+            </Button>
+          </Box>
+        </Container>
+      </Container>
 
-        {messages.length > 0 && <Chatbox messages={messages} />}
-      </div>
-    </div>
+      {/* Footer */}
+      <Box sx={{ mt: "auto", borderTop: "1px solid #222", py: 4, px: 4 }}>
+        <Grid container spacing={4}>
+          {[
+            {
+              title: "ResQ",
+              items: ["About Us", "Careers", "Blog", "Privacy Policy"],
+            },
+            {
+              title: "Product",
+              items: ["How it Works", "Dashboard", "Partners"],
+            },
+            {
+              title: "For Agencies",
+              items: ["Request Demo", "Security", "Changelog"],
+            },
+            {
+              title: "Contact",
+              items: ["hello@resq.city", "Jakarta, Indonesia"],
+            },
+          ].map((section, i) => (
+            <Grid size={{ xs: 12, md: 3 }} key={i}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                {section.title}
+              </Typography>
+              {(section.title === "ResQ" ? (
+                <Typography variant={"body1"} sx={{ color: "white", fontWeight: "bold", mt: 0.5, pr: 8 }}>
+                  Responsive Emergency System with AI-driven Quick-response.
+                </Typography>
+              ) :
+                (section.items.map((item, j) => (
+                  <Typography key={j} sx={{ color: "#9ca3af", mt: 0.5 }}>
+                    {item}
+                  </Typography>
+                ))))}
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+
+      <Divider
+        sx={{
+          width: "90%",          // 80% of the container/screen
+          mx: "auto",            // center horizontally
+          borderColor: "rgba(255,255,255,0.2)",
+        }}
+      />
+
+    </Box>
   );
 }
