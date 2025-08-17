@@ -29,6 +29,68 @@ export default function CallPage() {
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
+    // ... inside CallPage
+
+    const sendToLLM = async (text: string) => {
+        try {
+            const res = await fetch("/api/conversational", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_input: text,
+                    language: "en", // or "id"
+                    caller_phone: "+628888888",
+                }),
+            });
+
+            const result = await res.json();
+
+            // Bot’s main response
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: Date.now() + 1,
+                    timestamp: new Date(),
+                    sender: "bot",
+                    name: "ResQ",
+                    text: result.system_response,
+                },
+            ]);
+            speak(result.system_response);
+
+            // Optional next questions
+            if (result.next_questions?.length > 0) {
+                setMessages((prev) => [
+                    ...prev,
+                    ...result.next_questions.map((q: string) => ({
+                        id: Date.now() + Math.random(),
+                        timestamp: new Date(),
+                        sender: "bot",
+                        name: "ResQ",
+                        text: q,
+                    })),
+                ]);
+            }
+
+            // Final dispatch
+            if (result.emergency_processing?.caller_response) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now() + 2,
+                        timestamp: new Date(),
+                        sender: "bot",
+                        name: "ResQ",
+                        text: result.emergency_processing.caller_response,
+                    },
+                ]);
+                speak(result.emergency_processing.caller_response);
+            }
+        } catch (err) {
+            console.error("LLM API error:", err);
+        }
+    };
+
     const handleStartCall = () => {
         setInCall(true);
         setMessages((prev) => {
@@ -105,21 +167,23 @@ export default function CallPage() {
         lastUserMessageIdRef.current = newId;
         setUserInput(""); // clear input
 
-        // Bot responds
-        const botReply = `I heard you say: "${text}". How can I assist further?`;
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now() + 1,
-                timestamp: new Date(),
-                sender: "bot",
-                name: "ResQ",
-                text: botReply,
-            },
-        ]);
-
-        speak(botReply);
+        // Send to LLM API
+        sendToLLM(text);
     };
+
+    const finalizeCurrentMessage = useCallback(async () => {
+        if (lastUserMessageIdRef.current) {
+            const currentMsg = messages.find(
+                (m) => m.id === lastUserMessageIdRef.current
+            );
+            if (!currentMsg) return;
+
+            const finalText = currentMsg.text;
+            lastUserMessageIdRef.current = null;
+
+            sendToLLM(finalText);
+        }
+    }, [messages, sendToLLM]);
 
     const speak = async (text: string, onDone?: () => void) => {
         try {
@@ -156,32 +220,6 @@ export default function CallPage() {
             console.error("TTS error:", err);
         }
     };
-
-    // Handles marking a transcript as "final" after silence
-    const finalizeCurrentMessage = useCallback(() => {
-        if (lastUserMessageIdRef.current) {
-            const currentMsg = messages.find(
-                (m) => m.id === lastUserMessageIdRef.current
-            );
-            if (!currentMsg) return;
-
-            const finalText = currentMsg.text;
-
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now() + 1,
-                    timestamp: new Date(),
-                    sender: "bot",
-                    name: "ResQ",
-                    text: `I heard you say: "${finalText}". How can I assist further?`,
-                },
-            ]);
-
-            speak(`I heard you say: "${finalText}". How can I assist further?`);
-            lastUserMessageIdRef.current = null;
-        }
-    }, [messages]);
 
     const pauseMic = () => {
         setMicOn(false);
