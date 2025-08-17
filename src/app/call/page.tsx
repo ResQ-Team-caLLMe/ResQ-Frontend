@@ -7,6 +7,13 @@ import { Box, Typography, Button, Toolbar, AppBar } from "@mui/material";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+type StartBody = {
+    user_input: string;
+    language?: string;
+    caller_phone?: string;
+    session_id?: string;
+};
+
 export default function CallPage() {
     const router = useRouter();
 
@@ -24,56 +31,79 @@ export default function CallPage() {
     const [isMicOn, setMicOn] = useState(false);
     const [inCall, setInCall] = useState(false);
     const [userInput, setUserInput] = useState("");
+    const [sessionId, setSessionId] = useState<string | null>(null);
 
     const lastUserMessageIdRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // ... inside CallPage
-
     const sendToLLM = async (text: string) => {
+        const baseUrl =
+            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3002";
+
         try {
-            const res = await fetch("/api/conversational", {
+            const endpoint = sessionId
+                ? `${baseUrl}/api/v1/conversational/continue`
+                : `${baseUrl}/api/v1/conversational/start`;
+
+            const body: StartBody = {
+                user_input: text,
+            };
+
+            // only needed on start
+            if (!sessionId) {
+                body.language = "id";
+                body.caller_phone = "+6281234567890";
+            } else {
+                body.session_id = sessionId;
+            }
+
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_input: text,
-                    language: "en", // or "id"
-                    caller_phone: "+628888888",
-                }),
+                body: JSON.stringify(body),
             });
 
             const result = await res.json();
 
-            // Bot’s main response
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now() + 1,
-                    timestamp: new Date(),
-                    sender: "bot",
-                    name: "ResQ",
-                    text: result.system_response,
-                },
-            ]);
-            speak(result.system_response);
+            // save session_id if first call
+            if (result.session_id && !sessionId) {
+                setSessionId(result.session_id);
+            }
 
-            // Optional next questions
-            if (result.next_questions?.length > 0) {
+            // Bot’s main response
+            if (result.system_response) {
                 setMessages((prev) => [
                     ...prev,
-                    ...result.next_questions.map((q: string) => ({
-                        id: Date.now() + Math.random(),
+                    {
+                        id: Date.now() + 1,
                         timestamp: new Date(),
                         sender: "bot",
                         name: "ResQ",
-                        text: q,
-                    })),
+                        text: result.system_response,
+                    },
                 ]);
+                speak(result.system_response);
+            }
+
+            // Optional next questions
+            if (result.next_questions?.length > 0) {
+                const combined = result.next_questions.join(" ");
+                const newMessage: Message = {
+                    id: Date.now() + Math.random(),
+                    timestamp: new Date(),
+                    sender: "bot",
+                    name: "ResQ",
+                    text: combined,
+                };
+                setMessages((prev) => [...prev, newMessage]);
+                speak(combined);
             }
 
             // Final dispatch
             if (result.emergency_processing?.caller_response) {
+                const finalText = result.emergency_processing.caller_response;
+
                 setMessages((prev) => [
                     ...prev,
                     {
@@ -81,10 +111,14 @@ export default function CallPage() {
                         timestamp: new Date(),
                         sender: "bot",
                         name: "ResQ",
-                        text: result.emergency_processing.caller_response,
+                        text: finalText,
                     },
                 ]);
-                speak(result.emergency_processing.caller_response);
+
+                // speak and end call after playback
+                speak(finalText, () => {
+                    handleEndCall();
+                });
             }
         } catch (err) {
             console.error("LLM API error:", err);
@@ -120,6 +154,7 @@ export default function CallPage() {
 
     const handleEndCall = () => {
         setInCall(false);
+        setSessionId(null); // reset session
 
         // Stop any currently playing audio safely
         if (audioRef.current) {
@@ -149,6 +184,8 @@ export default function CallPage() {
     const handleSendText = () => {
         if (!userInput.trim()) return;
 
+        abortSpeak();
+
         const newId = Date.now();
         const text = userInput.trim();
 
@@ -171,7 +208,7 @@ export default function CallPage() {
         sendToLLM(text);
     };
 
-    const finalizeCurrentMessage = useCallback(async () => {
+    const finalizeCurrentMessage = useCallback(() => {
         if (lastUserMessageIdRef.current) {
             const currentMsg = messages.find(
                 (m) => m.id === lastUserMessageIdRef.current
@@ -181,9 +218,11 @@ export default function CallPage() {
             const finalText = currentMsg.text;
             lastUserMessageIdRef.current = null;
 
+            // use ref-safe call
             sendToLLM(finalText);
         }
-    }, [messages, sendToLLM]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const speak = async (text: string, onDone?: () => void) => {
         try {
@@ -218,6 +257,18 @@ export default function CallPage() {
             }
         } catch (err) {
             console.error("TTS error:", err);
+        }
+    };
+
+    const abortSpeak = () => {
+        if (audioRef.current) {
+            try {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0; // reset
+            } catch (err) {
+                console.warn("Abort speak error", err);
+            }
+            audioRef.current = null;
         }
     };
 

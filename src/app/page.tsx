@@ -24,6 +24,18 @@ export default function HomePage() {
     }
   };
 
+  const partners: { title: string, src: string }[] = [
+    { title: "Google Cloud", src: "/powered-by/gcp.png" },
+    { title: "Google Text-To-Speech", src: "/powered-by/googleTTS.png" },
+    { title: "Google Maps", src: "/powered-by/gmaps.png" },
+    { title: "SEA-LION AI", src: "/powered-by/sealion.png" },
+    { title: "AssemblyAI", src: "/powered-by/assemblyAI.png" },
+    { title: "Twilio", src: "/powered-by/twilio.png" },
+    { title: "Python", src: "/powered-by/python.png" },
+    { title: "Next JS", src: "/powered-by/nextjs.png" },
+    { title: "Supabase", src: "/powered-by/supabase.png" },
+  ];
+
   return (
     <Box sx={{ bgcolor: "black", color: "white", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Navbar */}
@@ -94,38 +106,6 @@ export default function HomePage() {
       </AppBar>
 
       <Container sx={{ textAlign: "center", pt: 12 }}>
-        {/* Status button */}
-        {/* <Button
-          variant="outlined"
-          size="small"
-          sx={{
-            borderRadius: 20,
-            borderColor: "#34D399",
-            color: "white",
-            px: 2.5,
-            py: 0.5,
-            fontSize: "0.8rem",
-            textTransform: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 1,
-            mb: 2
-          }}
-          startIcon={
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                bgcolor: "#34D399",
-                animation: "pulse 1.5s infinite",
-              }}
-            />
-          }
-        >
-          LIVE—READY FOR JAKARTA 112
-        </Button> */}
-
         <Typography
           variant="h2"
           fontWeight="bold"
@@ -452,6 +432,98 @@ export default function HomePage() {
           width: "90%",          // 80% of the container/screen
           mx: "auto",            // center horizontally
           borderColor: "rgba(255,255,255,0.2)",
+          my: 6,                 // vertical spacing
+        }}
+      />
+
+      {/* Powered By */}
+      <Container sx={{ py: 4 }}>
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+          textAlign="center"
+          mb={4}
+          color="white"
+        >
+          Powered By
+        </Typography>
+
+        <Box
+          sx={{
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            position: "relative",
+          }}
+        >
+          <Box
+            sx={{
+              display: "inline-flex",
+              animation: "scrollLeft 25s linear infinite",
+              "& > .card": {
+                mx: 3,
+                minWidth: 200,
+                maxWidth: 200,
+                minHeight: 200,
+                maxHeight: 200,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderRadius: 3,
+                background: "white",
+                backdropFilter: "blur(15px)",
+                WebkitBackdropFilter: "blur(15px)",
+                boxShadow: "0 4px 30px rgba(0,0,0,0.2)",
+                p: 2,
+              },
+            }}
+          >
+            {[...partners, ...partners].map((item, i) => (
+              <div className="card" key={i}>
+                <Box
+                  sx={{
+                    flexGrow: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 1,
+                  }}
+                >
+                  <Image
+                    src={item.src}
+                    alt={item.title}
+                    width={100}
+                    height={50}
+                    style={{ objectFit: "contain", marginBottom: "8px" }}
+                  />
+                </Box>
+                <Typography variant="subtitle1" color="black" fontWeight="bold" textAlign="center">
+                  {item.title}
+                </Typography>
+              </div>
+            ))}
+          </Box>
+        </Box>
+
+        {/* Keyframes */}
+        <style jsx global>{`
+          @keyframes scrollLeft {
+            0% {
+              transform: translateX(0%);
+            }
+            100% {
+              transform: translateX(-50%);
+            }
+          }
+        `}</style>
+      </Container>
+
+      <Divider
+        sx={{
+          width: "90%",          // 80% of the container/screen
+          mx: "auto",            // center horizontally
+          borderColor: "rgba(255,255,255,0.2)",
+          my: 6
         }}
       />
 

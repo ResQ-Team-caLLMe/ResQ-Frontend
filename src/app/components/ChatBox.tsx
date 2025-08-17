@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { User, Bot } from "lucide-react";
 import { Box, Typography, Avatar, Card, Stack } from "@mui/material";
+import ReactMarkdown from "react-markdown";
 
 export interface Message {
     id: number;
@@ -94,9 +95,14 @@ export const Chatbox = ({ messages }: ChatboxProps) => {
                                     boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
                                 }}
                             >
-                                <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                                    {msg.text}
-                                </Typography>
+                                <Box
+                                    sx={{
+                                        "& p": { m: 0, mb: 1 },
+                                        "& strong": { fontWeight: "bold" },
+                                    }}
+                                >
+                                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                </Box>
                             </Card>
 
                             {msg.sender !== "system" && (
