@@ -353,46 +353,6 @@ export default function HomePage() {
         </Container>
       </Container>
 
-      {/* Footer */}
-      <Box sx={{ mt: "auto", borderTop: "1px solid #222", py: 4, px: 4 }}>
-        <Grid container spacing={4}>
-          {[
-            {
-              title: "ResQ",
-              items: ["About Us", "Careers", "Blog", "Privacy Policy"],
-            },
-            {
-              title: "Product",
-              items: ["How it Works", "Dashboard", "Partners"],
-            },
-            {
-              title: "For Agencies",
-              items: ["Request Demo", "Security", "Changelog"],
-            },
-            {
-              title: "Contact",
-              items: ["hello@resq.city", "Jakarta, Indonesia"],
-            },
-          ].map((section, i) => (
-            <Grid size={{ xs: 12, md: 3 }} key={i}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
-                {section.title}
-              </Typography>
-              {(section.title === "ResQ" ? (
-                <Typography variant={"body1"} sx={{ color: "white", fontWeight: "bold", mt: 0.5, pr: 8 }}>
-                  Responsive Emergency System with AI-driven Quick-response.
-                </Typography>
-              ) :
-                (section.items.map((item, j) => (
-                  <Typography key={j} sx={{ color: "#9ca3af", mt: 0.5 }}>
-                    {item}
-                  </Typography>
-                ))))}
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
       <Divider
         sx={{
           width: "90%",          // 80% of the container/screen
@@ -400,6 +360,52 @@ export default function HomePage() {
           borderColor: "rgba(255,255,255,0.2)",
         }}
       />
+
+      {/* Footer */}
+      <Container sx={{ py: 2 }}>
+        <Box sx={{ mt: "auto", py: 4, px: 4 }}>
+          <Grid container spacing={4}>
+            {[
+              {
+                title: "ResQ",
+                items: ["About Us", "Careers", "Blog", "Privacy Policy"],
+              },
+              {
+                title: "Product",
+                items: ["How it Works", "Dashboard", "Partners"],
+              },
+              {
+                title: "For Agencies",
+                items: ["Request Demo", "Security", "Changelog"],
+              },
+              {
+                title: "Contact",
+                items: ["hello@resq.city", "Jakarta, Indonesia"],
+              },
+            ].map((section, i) => (
+              <Grid size={{ xs: 12, md: 3 }} key={i}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  {section.title}
+                </Typography>
+                {(section.title === "ResQ" ? (
+                  <Typography variant={"body1"} sx={{ color: "white", fontWeight: "bold", mt: 0.5, pr: 8 }}>
+                    Responsive Emergency System with AI-driven Quick-response.
+                  </Typography>
+                ) :
+                  (section.items.map((item, j) => (
+                    <Typography key={j} sx={{ color: "#9ca3af", mt: 0.5 }}>
+                      {item}
+                    </Typography>
+                  ))))}
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Container>
+
+      <Typography variant="body1" textAlign="center" my={2}>
+        © 2025 ResQ. All rights reserved.
+      </Typography>
 
     </Box>
   );
